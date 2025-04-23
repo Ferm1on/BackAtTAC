@@ -1,18 +1,37 @@
-# To Load this module do
-# Import-Module .\BackAtTAC.psm1
-# Get-Help BackUp-TACData -Full (or Read-TACCSV' or 'Read-TACXML)
-# To unload Module do
-# Remove-Module BackAtTAC
-# To List Modules do
-# Get-Module
-# Dependencies: MicrosoftTeams, Powershell 7.5 or higher for -Fast option.
-# To install Dependencies do:
-# Install-Module -Name MicrosoftTeams -Force -AllowClobber
+<#
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
 
-# Input: $FolderPath, $Object
-# Output: Write $Object as <Property>_DDMM.xml or <Property>_DDMM.cvs to $FolderPath.
-# Available Options: "CSV", "XML", "Fast"
+Copyright (C) 2024 Michael Rodrigues da Cunha
 
+BackAtTAC is a free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+
+BackAtTAC is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+To Load this module do
+Import-Module .\BackAtTAC.psm1
+Get-Help BackUp-TACData -Full (or Read-TACCSV' or 'Read-TACXML)
+To unload Module do
+Remove-Module BackAtTAC
+To List Modules do
+Get-Module
+Dependencies: MicrosoftTeams, Powershell 7.5 or higher for -Fast option.
+To install Dependencies do:
+Install-Module -Name MicrosoftTeams -Force -AllowClobber
+
+Input: $FolderPath, $Object
+Output: Write $Object as <Property>_DDMM.xml or <Property>_DDMM.cvs to $FolderPath.
+Available Options: "CSV", "XML", "Fast"
+#>
 
 # GLOBAL VARIABLES
 

@@ -1,8 +1,4 @@
 # BackAtTAC
-PowerShell Module to backup Teams Phone Properties.
-Great, I’ll draft a README file for your `BackAtTAC` GitHub repository that explains its purpose, usage, dependencies, and how others can contribute or request features. I’ll include sections for installation, example usage, and contact for feature suggestions. I’ll share it here shortly.
-
-# BackAtTAC
 
 ## Project Description
 
