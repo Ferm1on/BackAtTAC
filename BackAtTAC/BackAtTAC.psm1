@@ -33,84 +33,88 @@ Output: Write $Object as <Property>_DDMM.xml or <Property>_DDMM.cvs to $FolderPa
 Available Options: "CSV", "XML", "Fast"
 #>
 
-# GLOBAL VARIABLES
+#---------------------------------------------- GLOBAL VARIABLES ----------------------------------------------
 
-# All Supported properties that can be backed up. To add a new property, add a new function to this hashtable. and increase the throttle limit value by 2
-$All_Properties = @{
-    CivicAddresses = { 
+# All Supported properties that can be backed up. To add a new property...
+#   1. Add a new function to $All_Properties_Exporters hashtable. 
+#   2. Add new entry to $All_Properties_Parameters with proterty table schema and required fields.
+#   3. Increase the throttle limit value by 2
+$All_Properties_Exporters = @{
+    CivicAddress = { 
         param($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $CivicAddresses = Get-CsOnlineLisCivicAddress
-        if (-not $CivicAddresses -or $CivicAddresses.Count -eq 0) {
-            Write-Verbose "No CivicAddresses found in Teams Admin Center; skipping CivicAddresses export."
+        $CivicAddress = Get-CsOnlineLisCivicAddress
+        if (-not $CivicAddress -or $CivicAddress.Count -eq 0) {
+            Write-Verbose "No CivicAddress found in Teams Admin Center; skipping CivicAddress export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $CivicAddresses -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 
-    Locations = { 
+    LocationSchema = { 
         param($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $Locations = Get-CsOnlineLisLocation
-        if (-not $Locations -or $Locations.Count -eq 0) {
-            Write-Verbose "No Locations found in Teams Admin Center; skipping Locations export."
+        $LocationSchema = Get-CsOnlineLisLocation
+        if (-not $LocationSchema -or $LocationSchema.Count -eq 0) {
+            Write-Verbose "No LocationSchema found in Teams Admin Center; skipping LocationSchema export."
             return
         }
-        & $Write_File -FolderPath $Path -Property $Locations -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast
     
     }
 
-    Subnets = { 
+    Subnet = { 
         param ($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $Subnets = Get-CsOnlineLisSubnet
-        if (-not $Subnets -or $Subnets.Count -eq 0) {
-            Write-Verbose "No Subnets found in Teams Admin Center; skipping Subnets export."
+        $Subnet = Get-CsOnlineLisSubnet
+        if (-not $Subnet -or $Subnet.Count -eq 0) {
+            Write-Verbose "No Subnet found in Teams Admin Center; skipping Subnet export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $Subnets -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 
-    Switches = { 
+    Switch = { 
         param ($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $Switches = Get-CsOnlineLisSwitch
-        if (-not $Switches -or $Switches.Count -eq 0) {
-            Write-Verbose "No Switches found in Teams Admin Center; skipping Switches export."
+        $Switch = Get-CsOnlineLisSwitch
+        if (-not $Switch -or $Switch.Count -eq 0) {
+            Write-Verbose "No Switch found in Teams Admin Center; skipping Switch export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $Switches -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 
-    Ports = { 
+    Port = { 
         param ($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $Ports = Get-CsOnlineLisPort
-        if (-not $Ports -or $Ports.Count -eq 0) {
-            Write-Verbose "No Ports found in Teams Admin Center; skipping Ports export."
+        $Port = Get-CsOnlineLisPort
+        if (-not $Port -or $Port.Count -eq 0) {
+            Write-Verbose "No Port found in Teams Admin Center; skipping Port export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $Ports -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 
-    WirelessAccessPoints = { 
+    WAP = { 
         param ($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $WirelessAccessPoints = Get-CsOnlineLisWirelessAccessPoint
-        if (-not $WirelessAccessPoints -or $WirelessAccessPoints.Count -eq 0) {
-            Write-Verbose "No WirelessAccessPoints found in Teams Admin Center; skipping WirelessAccessPoints export."
+        $WAP = Get-CsOnlineLisWirelessAccessPoint
+        if (-not $WAP -or $WAP.Count -eq 0) {
+            Write-Verbose "No WAP found in Teams Admin Center; skipping WAP export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $WirelessAccessPoints -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $WAP -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 }
 
 # Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
+# item2 denotes if the property is required or not. If true, the property is required.
 $All_Properties_Parameters = @{
 
     CivicAddress = @(
@@ -197,9 +201,12 @@ $All_Properties_Parameters = @{
     )
 }
 
-# Throttle limit for the number of threads to run in parallel. Should be equal to the number of properties in $All_Properties*2
+# Throttle limit for the number of threads to run in parallel. Should be equal to the number of properties in $All_Properties_Exporters*2
 $ThrottleLimit = 12
 
+#---------------------------------------- PRIVATE FUNCTION DEFINITIONS ----------------------------------------
+
+# Write a file to the specified path. The file name is generated dynamically based on the property type and current date.
 function Write-File {
     param (
         [Parameter(Mandatory=$true)]
@@ -218,13 +225,12 @@ function Write-File {
         [switch]$Fast=$false
     )
 
-    #---------------------------------- ERROR CHECKING START----------------------------------
-    # In Write-File, right at the top after the parameters:
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
     if (-not $Property -or $Property.Count -eq 0) {
         Write-Warning "Write-File: The provided object is null or empty, skipping export."
         return
     }
-    #---------------------------------- ERROR CHECKING END----------------------------------
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
 
     # Generate FileName dynamically
     # Extract the type name after the last period
@@ -242,7 +248,7 @@ function Write-File {
     try {
         # Export the object to CSV and XML
         if ($CSV -eq $XML) {
-            # in Parallel
+            # In Parallel
             if ($Fast) {
                 $Jobs = @(
                     Start-ThreadJob -ScriptBlock { param($Property, $Path) $Property | Export-Csv -Path "$Path.csv" -NoTypeInformation -Force } -ArgumentList $Property, $FullFilePath
@@ -258,23 +264,25 @@ function Write-File {
             }
         }
         elseif ($CSV) {
+            # Export the object to CSV
             $Property | Export-Csv -Path "$FullFilePath.csv" -NoTypeInformation -Force  
-        #Export the object to XML
         } elseif ($XML) {
+            # Export the object to XML
             $Property | Export-Clixml -Path "$FullFilePath.xml" -Force
-        # Export the object to both CSV and XML
         } 
 
         return
 
     } catch {
-        Write-Error $_.Exception.Message
+        Write-Error $_.Exception.Message # <-- Log the error message is possibly not behaving as intented FIX
         return
     }
 }
 $Write_File = [ScriptBlock]::Create((Get-Command Write-File -CommandType Function).Definition)
 
-# Read backed up file with integrity checking.
+# Reads backup file with integrity checking. 
+# This fuction checks if the file is a CSV or XML file, and that the file schema matches the MicrosoftTeams 7.0.0 scheme.
+# Optionally, you can pass a SHA256 checksum to validate the file integrity further.
 function Read-File {
     param (
         [Parameter(Mandatory=$true)]
@@ -285,10 +293,9 @@ function Read-File {
 
         [Parameter(Mandatory=$false)]
         [string]$Checksum = $null
-
     )
 
-    #---------------------------------- ERROR CHECKING START----------------------------------
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
 
     # Check if the path is valid
     if (-not (Test-Path -Path $Path)) {
@@ -305,7 +312,7 @@ function Read-File {
             return
         }
     }
-    #---------------------------------- ERROR CHECKING END----------------------------------
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
 
     if ($Path -match '\.(csv)$') {
         # Importing CSV file
@@ -332,12 +339,12 @@ function Read-File {
         
                 # Column is present, if it's required, ensure no row is empty/null
                 if ($isRequired) {
-                    # build a list of zero-based indices where the value is null or whitespace
+                    # build a list of zero-based indices where the value is null or whitespace <-- NEEDS TESTING
                     $badIndices = 0..($CsvObject.Count - 1) |
-                        Where-Object { [string]::IsNullOrWhiteSpace( $CsvObject[$_].$colName ) }
+                        Where-Object {[string]::IsNullOrWhiteSpace($CsvObject[$_].$colName)}
         
                     if ($badIndices) {
-                        # adjust to human-friendly line numbers (+2 because header is line 1)
+                        # adjust to human-friendly line numbers (+2 because header is line 1) <-- NEEDS TESTING
                         $badLines = $badIndices | ForEach-Object { $_ + 2 }
                         Write-Error "Required column '$colName' has empty values at CSV line(s): $($badLines -join ', ')"
                         return
@@ -358,7 +365,7 @@ function Read-File {
         try {
             $XmlObject = Import-Clixml -Path $Path
 
-            # XML: existence + non-null checks per schema
+            # Check existence and non-null for each column in XML schema
             foreach ($tuple in $All_Properties_Parameters[$PropertyType]) {
                 $colName    = $tuple.Item1
                 $isRequired = $tuple.Item2
@@ -405,15 +412,18 @@ function Read-File {
 }
 $Read_File = [ScriptBlock]::Create((Get-Command Read-File -CommandType Function).Definition)
 
-# Main public function that user interacts with. Backs up Teams Admin Center data.
+
+#---------------------------------------- PUBLIC FUNCTION DEFINITIONS -----------------------------------------
+
+# Backs up Teams Admin Center data.
 function BackUp-TACData {
     <#
     .SYNOPSIS
         Backs up Teams Admin Center data through 'MicrosoftTeams' PowerShell Module.
     
     .DESCRIPTION
-        Backs up property data from Microsoft Teams Admin Center (e.g., CivicAddresses, Locations, Switches etc.).
-        Allows optional multithreading for faster (default is slow) exports, uses switches for CSV/XML export preferences,
+        Backs up property data from Microsoft Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        Allows optional multithreading for faster (default is slow) export, uses switch for CSV/XML export preferences,
         and can optionally filter which properties are backed up. 
         Default: All properties are backed up and exported in both CSV and XML formats. Default file name for backups are '<Property>_DDMM.csv' and '<Property>_DDMM.xml'.
         To get this menu use Get-Help BackUp-TACData -Full
@@ -422,8 +432,8 @@ function BackUp-TACData {
         The target directory to store exported backup files.
 
     .PARAMETER Properties (Optional)
-        An array of Teams Admin Center property names to export (e.g., 'CivicAddresses', 'Locations'). If omitted, all properties are exported.
-        Currently supported properties: 'CivicAddresses', 'Locations', 'Subnets', 'Switches', 'Ports', 'WirelessAccessPoints'.
+        An array of Teams Admin Center property names to export (e.g., 'CivicAddress', 'LocationSchema'). If omitted, all properties are exported.
+        Currently supported properties: 'CivicAddress', 'LocationSchema', 'Subnet', 'Switch', 'Port', 'WAP'.
 
     .PARAMETER CSV (Optional)
         Export only in CSV format. if both CSV and XML are selected, both formats will be exported.
@@ -452,8 +462,8 @@ function BackUp-TACData {
         Backs up all properties, using sequential processing and exporting in both CSV and XML formats. File names are in the format '<Property>_DDMM.csv' and '<Property>_DDMM.xml'.
         
     .EXAMPLE
-        BackUp-TACData -Path "C:\\TACBackup" -Properties "CivicAddresses","Locations" -CSV -Fast 
-        Backs up CivicAddresses and Locations as CSV, using multithreading (Fast).
+        BackUp-TACData -Path "C:\\TACBackup" -Properties "CivicAddress","LocationSchema" -CSV -Fast 
+        Backs up CivicAddress and LocationSchema as CSV, using multithreading (Fast).
 
     .LINK
         https://github.com/Ferm1on/Teams-Powershell-Backup-Module
@@ -482,21 +492,21 @@ function BackUp-TACData {
         [switch]$Fast=$false
     )
 
-    #---------------------------------- ERROR CHECKING START----------------------------------
-    # ERROR CHECKING for $FolderPath: Checking if path exists
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+    # Error checking for $FolderPath: Checking if path exists
     if (-not (Test-Path -Path $Path)) {
         Write-Error "Invalid FolderPath: $Path"
         return
     }
 
-    # ERROR CHECKING for $Properties: Checking all user submited properties are supported
+    # Error checking for $Properties: Checking all user submited properties are supported
     foreach ($Property in $Properties) {
-        if (-not $All_Properties.ContainsKey($Property)) {
+        if (-not $All_Properties_Exporters.ContainsKey($Property)) {
             Write-Error "This module does not support the backup of '$Property' property."
             return
         }
     }
-    #---------------------------------- ERROR CHECKING END----------------------------------
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
 
     try {
         # Backing Up All Properties
@@ -507,14 +517,15 @@ function BackUp-TACData {
               # Backup all properties else Backup selected properties.
               if(-not $Properties -or $Properties.Count -eq 0) {
       
-                  foreach ($Property in $All_Properties.Values) {
+                  foreach ($Property in $All_Properties_Exporters.Values) {
                       $Jobs += Start-ThreadJob -ThrottleLimit 8 -ScriptBlock $Property -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast
                   }
       
               } else {
       
                   foreach ($Property in $Properties) {
-                      $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties.($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast
+                      $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters
+                    .($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast
                   }
               }
       
@@ -527,14 +538,14 @@ function BackUp-TACData {
               # Backup all properties else Backup selected properties.
               if(-not $Properties -or $Properties.Count -eq 0) {
       
-                  foreach ($Property in $All_Properties.Values) {
+                  foreach ($Property in $All_Properties_Exporters.Values) {
                       & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast
                   }
                   
               } else {
       
                   foreach ($Property in $Properties) {
-                      & $All_Properties.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast
+                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast
                   }
               }
           }
@@ -549,26 +560,38 @@ function BackUp-TACData {
     
 }
 
-# Public function to read an CSV or XML file and return a System.Object
+# Reads an CSV or XML file and return a System.Object
 function Read-TACData {
     <#
     .SYNOPSIS
-        Reads a CSV file and returns the content as a System.Object array.
+        Reads a CSV or XML file and returns the content as a System.Object.
 
     .DESCRIPTION
-        Reads a CSV file using Import-Csv and returns the resulting objects as a collection.
+        Reads a CSV/XML file using Import-Csv/Import-CliXml and returns a System.Object.
+        This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 7.0.0 scheme
+        and that all required columns are present and not null.
+        Optionally, you pay pass a SHA256 checksum to validate the file integrity further.
 
     .PARAMETER Path
-        The full file path to the CSV file to import.
+        The full file path to the backup file to import.
+    
+    .PARAMETER PropertyType
+        The type of property to import (e.g., CivicAddress, LocationSchemachema, Switch, Port, WAP).
+    
+    .PARAMETER Checksum
+        The SHA256 checksum of the backup file to validate its integrity.
     
     .INPUTS
         System.String (Path)
+        System.String (PropertyType)
+        System.String (Checksum)
+
     .OUTPUTS
-        System.Object[] (CSV Data)
+        System.Object (Backup data)
 
     .EXAMPLE
-        $csvData = Read-TACCSV -Path "C:\Path\to\yourfile.csv"
-        Imports data from the specified CSV file into $csvData.
+        $csvData = Read-TACData -Path "C:\Path\to\<yourfile.csv>" -PropertyType "CivicAddress" -Checksum "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        Import data from the specified file into $csvData.
 
     .NOTES
         This script is provided as-is and is not supported by me. Please test before using it in a production environment.
@@ -578,41 +601,19 @@ function Read-TACData {
     #>
     param (
         [Parameter(Mandatory=$true)]
-        [string[]]$Path
+        [string]$Path,
+
+        [Parameter(Mandatory=$true)]
+        [string]$PropertyType,
+
+        [Parameter(Mandatory=$false)]
+         [string]$Checksum = $null
     )
     # Variables declared in the function scope
-    $Backup_Files = @()
-    Write-Verbose "Reading CSV files from path: $Path"
-    Write-Verbose "Path is of type: $($Path.GetType().FullName)"
-
-    #---------------------------------- ERROR CHECKING START----------------------------------
-    # Check if the paths are valid
-    foreach ($Each in $Path) {
-        Write-Verbose "Checking path: $Each"
-        if (-not (Test-Path -Path $Each)) {
-            Write-Error "Read-CsvFile: CSV file not found at path: $Each"
-            return $null
-        }
-    }
-    #---------------------------------- ERROR CHECKING END----------------------------------
-
-    foreach($File in $Path) {
-        try {
-            $data = Import-Csv -Path $File
-            $Backup_Files  += ,$data
-            Write-Verbose "Imported CSV file: $File to $Backup_Files"
-        }
-        catch {
-            
-            Write-Error "Failed to import CSV file: $_"
-            Write-Error $_.Exception.Message
-            return
-        }
-    }
-    return $Backup_Files
+    return Read-File -Path $Path -PropertyType $PropertyType -Checksum $Checksum
 }
 
-# Export the functions
+# Export public functions
 Export-ModuleMember -Function BackUp-TACData, Read-TACData
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -621,10 +622,10 @@ Export-ModuleMember -Function BackUp-TACData, Read-TACData
 #__________________________ Function Additions and Bugs __________________________
 # Add more Verbose Options
 # Add Teams Admin Center data backup upload function. (Dangerous as it will overwrite server data)
-# Remove #FileName option. User does not need to add file name.
 # Add error check for Connect-MicrosoftTeams. Test connection and test permissions.
-# Add fast option to Read-TACCSV and Read-TACXML. (Use -AsJob for fast option)
+# Add fast option to Read-TACData. (Use -AsJob for fast option)
 # Add a -Force option to the Write-File function to overwrite existing files without prompting.
+# Add return value of a checksum to Write-File function. This will allow the user to verify the integrity of the file after writing it later
 
 <#
 Error Checking and Logging: Implement some logging for job outcomes. For example, after a job finishes, check $job.State and $job.Error (or catch exceptions within the job scriptblock). 
