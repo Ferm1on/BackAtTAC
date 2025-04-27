@@ -110,6 +110,26 @@ $All_Properties = @{
     }
 }
 
+# Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
+$All_Properties_Parameters = @{
+
+    CivicAddress = @("AdditionalLocationInfo","City","CityAlias","CivicAddressId","CompanyName","CompanyTaxId","Confidence","CountryOrRegion",
+    "CountyOrDistrict",	"DefaultLocationId","Description","Elin","HouseNumber","HouseNumberSuffix","Latitude","Longitude","NumberOfTelephoneNumbers",
+    "NumberOfVoiceUsers","PartnerId","PostDirectional","PostalCode","PreDirectional","StateOrProvince","StreetName","StreetSuffix","TenantId",
+    "ValidationStatus")
+
+    LocationSchema = @("City","CityAlias","CivicAddressId","CompanyName","CompanyTaxId","Confidence","CountryOrRegion","CountyOrDistrict","Description",
+    "Elin","HouseNumber","HouseNumberSuffix","IsDefault","Latitude","Location","LocationId","Longitude","NumberOfTelephoneNumbers","NumberOfVoiceUsers",
+    "PartnerId","PostDirectional","PostalCode","PreDirectional","StateOrProvince","StreetName","StreetSuffix","TenantId","ValidationStatus")
+
+    Subnet = @("Description","LocationId","Subnet")
+
+    Switch = @("ChassisId","Description","LocationId")
+
+    Port = @("")
+    WAP = @("Bssid","Description","LocationId")
+}
+
 # Throttle limit for the number of threads to run in parallel. Should be equal to the number of properties in $All_Properties*2
 $ThrottleLimit = 12
 
@@ -186,6 +206,15 @@ function Write-File {
     }
 }
 $Write_File = [ScriptBlock]::Create((Get-Command Write-File -CommandType Function).Definition)
+
+# Read backed up file.
+function read-file {
+    param (
+        [string[]]$Paths
+    )
+    # Function Body
+
+}
 
 # Main public function that user interacts with. Backs up Teams Admin Center data.
 function BackUp-TACData {
@@ -425,6 +454,40 @@ function Read-TACXML {
 
 # Export the functions
 Export-ModuleMember -Function BackUp-TACData, Read-TACCSV, Read-TACXML
+
+<#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+---- Check for Header Consistency ----
+
+$path = "data.csv"
+$lines = Get-Content -Path $path
+$headerColumns = ($lines[0] -split ",").Count
+
+for ($i = 1; $i -lt $lines.Count; $i++) {
+    $rowColumns = ($lines[$i] -split ",").Count
+    if ($rowColumns -ne $headerColumns) {
+        Write-Warning "Row $i has $rowColumns columns; expected $headerColumns"
+    }
+}
+
+---- Detect Empty or Null Values ----
+
+$data | ForEach-Object {
+    foreach ($prop in $_.PSObject.Properties) {
+        if (-not $prop.Value) {
+            Write-Warning "Missing value in column '$($prop.Name)' on row: $($_)"
+        }
+    }
+}
+
+---- Validate Required Columns Exist ----
+
+$requiredColumns = @("Name", "Age", "Email")
+foreach ($col in $requiredColumns) {
+    if (-not ($data[0].PSObject.Properties.Name -contains $col)) {
+        Write-Error "Missing required column: $col"
+    }
+}
+#>
 
 #__________________________ Function Additions and Bugs __________________________
 # Add more Verbose Options
