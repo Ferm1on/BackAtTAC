@@ -113,21 +113,88 @@ $All_Properties = @{
 # Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
 $All_Properties_Parameters = @{
 
-    CivicAddress = @("AdditionalLocationInfo","City","CityAlias","CivicAddressId","CompanyName","CompanyTaxId","Confidence","CountryOrRegion",
-    "CountyOrDistrict",	"DefaultLocationId","Description","Elin","HouseNumber","HouseNumberSuffix","Latitude","Longitude","NumberOfTelephoneNumbers",
-    "NumberOfVoiceUsers","PartnerId","PostDirectional","PostalCode","PreDirectional","StateOrProvince","StreetName","StreetSuffix","TenantId",
-    "ValidationStatus")
+    CivicAddress = @(
+        [System.Tuple[string,bool]]::New("AdditionalLocationInfo",  $false)
+        [System.Tuple[string,bool]]::New("City",                    $false)
+        [System.Tuple[string,bool]]::New("CityAlias",               $false)
+        [System.Tuple[string,bool]]::New("CivicAddressId",          $false)
+        [System.Tuple[string,bool]]::New("CompanyName",             $false)
+        [System.Tuple[string,bool]]::New("CompanyTaxId",            $false)
+        [System.Tuple[string,bool]]::New("Confidence",              $false)
+        [System.Tuple[string,bool]]::New("CountryOrRegion",         $false)
+        [System.Tuple[string,bool]]::New("CountyOrDistrict",        $false)
+        [System.Tuple[string,bool]]::New("DefaultLocationId",       $false)
+        [System.Tuple[string,bool]]::New("Description",             $false)
+        [System.Tuple[string,bool]]::New("Elin",                    $false)
+        [System.Tuple[string,bool]]::New("HouseNumber",             $false)
+        [System.Tuple[string,bool]]::New("HouseNumberSuffix",       $false)
+        [System.Tuple[string,bool]]::New("Latitude",                $false)
+        [System.Tuple[string,bool]]::New("Longitude",               $false)
+        [System.Tuple[string,bool]]::New("NumberOfTelephoneNumbers",$false)
+        [System.Tuple[string,bool]]::New("NumberOfVoiceUsers",      $false)
+        [System.Tuple[string,bool]]::New("PartnerId",               $false)
+        [System.Tuple[string,bool]]::New("PostDirectional",         $false)
+        [System.Tuple[string,bool]]::New("PostalCode",              $false)
+        [System.Tuple[string,bool]]::New("PreDirectional",          $false)
+        [System.Tuple[string,bool]]::New("StateOrProvince",         $false)
+        [System.Tuple[string,bool]]::New("StreetName",              $false)
+        [System.Tuple[string,bool]]::New("StreetSuffix",            $false)
+        [System.Tuple[string,bool]]::New("TenantId",                $false)
+        [System.Tuple[string,bool]]::New("ValidationStatus",        $false)
+    )
 
-    LocationSchema = @("City","CityAlias","CivicAddressId","CompanyName","CompanyTaxId","Confidence","CountryOrRegion","CountyOrDistrict","Description",
-    "Elin","HouseNumber","HouseNumberSuffix","IsDefault","Latitude","Location","LocationId","Longitude","NumberOfTelephoneNumbers","NumberOfVoiceUsers",
-    "PartnerId","PostDirectional","PostalCode","PreDirectional","StateOrProvince","StreetName","StreetSuffix","TenantId","ValidationStatus")
+    LocationSchema = @(
+        [System.Tuple[string,bool]]::New("City",                    $false)
+        [System.Tuple[string,bool]]::New("CityAlias",               $false)
+        [System.Tuple[string,bool]]::New("CivicAddressId",          $false)
+        [System.Tuple[string,bool]]::New("CompanyName",             $false)
+        [System.Tuple[string,bool]]::New("CompanyTaxId",            $false)
+        [System.Tuple[string,bool]]::New("Confidence",              $false)
+        [System.Tuple[string,bool]]::New("CountryOrRegion",         $false)
+        [System.Tuple[string,bool]]::New("CountyOrDistrict",        $false)
+        [System.Tuple[string,bool]]::New("Description",             $false)
+        [System.Tuple[string,bool]]::New("Elin",                    $false)
+        [System.Tuple[string,bool]]::New("HouseNumber",             $false)
+        [System.Tuple[string,bool]]::New("HouseNumberSuffix",       $false)
+        [System.Tuple[string,bool]]::New("IsDefault",               $false)
+        [System.Tuple[string,bool]]::New("Latitude",                $false)
+        [System.Tuple[string,bool]]::New("Location",                $false)
+        [System.Tuple[string,bool]]::New("LocationId",              $false)
+        [System.Tuple[string,bool]]::New("Longitude",               $false)
+        [System.Tuple[string,bool]]::New("NumberOfTelephoneNumbers",$false)
+        [System.Tuple[string,bool]]::New("NumberOfVoiceUsers",      $false)
+        [System.Tuple[string,bool]]::New("PartnerId",               $false)
+        [System.Tuple[string,bool]]::New("PostDirectional",         $false)
+        [System.Tuple[string,bool]]::New("PostalCode",              $false)
+        [System.Tuple[string,bool]]::New("PreDirectional",          $false)
+        [System.Tuple[string,bool]]::New("StateOrProvince",         $false)
+        [System.Tuple[string,bool]]::New("StreetName",              $false)
+        [System.Tuple[string,bool]]::New("StreetSuffix",            $false)
+        [System.Tuple[string,bool]]::New("TenantId",                $false)
+        [System.Tuple[string,bool]]::New("ValidationStatus",        $false)
+    )
 
-    Subnet = @("Description","LocationId","Subnet")
+    Subnet = @(
+        [System.Tuple[string,bool]]::New("Description", $false)
+        [System.Tuple[string,bool]]::New("LocationId",  $false)
+        [System.Tuple[string,bool]]::New("Subnet",      $false)
+    )
 
-    Switch = @("ChassisId","Description","LocationId")
+    Switch = @(
+        [System.Tuple[string,bool]]::New("ChassisId",   $false)
+        [System.Tuple[string,bool]]::New("Description", $false)
+        [System.Tuple[string,bool]]::New("LocationId",  $false)
+    )
 
-    Port = @("")
-    WAP = @("Bssid","Description","LocationId")
+    Port = @(
+        [System.Tuple[string,bool]]::New("",            $false)
+    )
+
+    WAP = @(
+        [System.Tuple[string,bool]]::New("Bssid",       $false)
+        [System.Tuple[string,bool]]::New("Description", $false)
+        [System.Tuple[string,bool]]::New("LocationId",  $false)
+    )
 }
 
 # Throttle limit for the number of threads to run in parallel. Should be equal to the number of properties in $All_Properties*2
@@ -202,19 +269,141 @@ function Write-File {
 
     } catch {
         Write-Error $_.Exception.Message
-        return $false
+        return
     }
 }
 $Write_File = [ScriptBlock]::Create((Get-Command Write-File -CommandType Function).Definition)
 
-# Read backed up file.
-function read-file {
+# Read backed up file with integrity checking.
+function Read-File {
     param (
-        [string[]]$Paths
-    )
-    # Function Body
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
 
+        [Parameter(Mandatory=$true)]
+        [string]$PropertyType,
+
+        [Parameter(Mandatory=$false)]
+        [string]$Checksum = $null
+
+    )
+
+    #---------------------------------- ERROR CHECKING START----------------------------------
+
+    # Check if the path is valid
+    if (-not (Test-Path -Path $Path)) {
+        Write-Error "Read-CsvFile: CSV file not found at path: $Path"
+        return
+    }
+
+    # If provided, check if checksum matches.
+    if ($Checksum) {
+        if ((Get-FileHash -Path $Path -Algorithm SHA256).Hash -eq $Checksum) {
+            Write-Verbose "File checksum integrity check passed."
+        } else {
+            Write-Error "File integrity check failed. File may be corrupted."
+            return
+        }
+    }
+    #---------------------------------- ERROR CHECKING END----------------------------------
+
+    if ($Path -match '\.(csv)$') {
+        # Importing CSV file
+        try {
+            # Load the CSV
+            $CsvObject = Import-Csv -Path $Path
+        
+            # Check existence and non-null for each column in CSV schema
+            foreach ($tuple in $All_Properties_Parameters[$PropertyType]) {
+                $colName    = $tuple.Item1
+                $isRequired = $tuple.Item2
+        
+                # Check Column existence
+                if (-not ($CsvObject[0].PSObject.Properties.Name -contains $colName)) {
+                    if ($isRequired) {
+                        Write-Error "$colName column is required, CSV not loaded"
+                        return
+                    }
+                    else {
+                        Write-Verbose "$colName does not exist"
+                        continue
+                    }
+                }
+        
+                # Column is present, if it's required, ensure no row is empty/null
+                if ($isRequired) {
+                    # build a list of zero-based indices where the value is null or whitespace
+                    $badIndices = 0..($CsvObject.Count - 1) |
+                        Where-Object { [string]::IsNullOrWhiteSpace( $CsvObject[$_].$colName ) }
+        
+                    if ($badIndices) {
+                        # adjust to human-friendly line numbers (+2 because header is line 1)
+                        $badLines = $badIndices | ForEach-Object { $_ + 2 }
+                        Write-Error "Required column '$colName' has empty values at CSV line(s): $($badLines -join ', ')"
+                        return
+                    }
+                }
+            }
+
+            Write-Verbose "CSV file: $Path passed attribute integrity check."
+            Write-Verbose "Imported $Path to enviroment."
+            return $CsvObject
+        }
+        catch { 
+            Write-Error "Failed to import CSV file: $_"
+            return
+        }
+
+    } elseif ($Path -match '\.(xml)$'){
+        try {
+            $XmlObject = Import-Clixml -Path $Path
+
+            # XML: existence + non-null checks per schema
+            foreach ($tuple in $All_Properties_Parameters[$PropertyType]) {
+                $colName    = $tuple.Item1
+                $isRequired = $tuple.Item2
+
+                # existence against first node
+                if (-not ($XmlObject[0].PSObject.Properties.Name -contains $colName)) {
+                    if ($isRequired) {
+                        Write-Error "$colName property is required, XML not loaded"
+                        return
+                    }
+                    else {
+                        Write-Verbose "$colName does not exist in XML"
+                        continue
+                    }
+                }
+
+                # non-null check across all nodes
+                if ($isRequired) {
+                    $badIndices = 0..($XmlObject.Count - 1) |
+                        Where-Object { [string]::IsNullOrWhiteSpace( $XmlObject[$_].$colName ) }
+
+                    if ($badIndices) {
+                        $badLines = $badIndices | ForEach-Object { $_ + 1 } 
+                        # +1 because XML elements don’t have a header line; adjust as you see fit
+                        Write-Error "Required property '$colName' is empty in XML element indices: $($badLines -join ', ')"
+                        return
+                    }
+                }
+            }
+            
+            Write-Verbose "XML file: $Path passed attribute integrity check."
+            Write-Verbose "Imported XML: $Path"
+            return $XmlObject
+        }
+        catch { 
+            Write-Error "Failed to import XML file: $_"
+            return
+        }
+
+    } else {
+        Write-Error "Unsupported file format. Only CSV and XML files are supported."
+        return
+    }
 }
+$Read_File = [ScriptBlock]::Create((Get-Command Read-File -CommandType Function).Definition)
 
 # Main public function that user interacts with. Backs up Teams Admin Center data.
 function BackUp-TACData {
@@ -297,14 +486,14 @@ function BackUp-TACData {
     # ERROR CHECKING for $FolderPath: Checking if path exists
     if (-not (Test-Path -Path $Path)) {
         Write-Error "Invalid FolderPath: $Path"
-        return $False
+        return
     }
 
     # ERROR CHECKING for $Properties: Checking all user submited properties are supported
     foreach ($Property in $Properties) {
         if (-not $All_Properties.ContainsKey($Property)) {
             Write-Error "This module does not support the backup of '$Property' property."
-            return $False
+            return
         }
     }
     #---------------------------------- ERROR CHECKING END----------------------------------
@@ -355,13 +544,13 @@ function BackUp-TACData {
     } catch {
         Write-Error "Failure on BackUp-TACData function"
         Write-Error $_.Exception.Message
-        return $false
+        return
     }
     
 }
 
-# Public function to read an CSV file and return a System.Object
-function Read-TACCSV {
+# Public function to read an CSV or XML file and return a System.Object
+function Read-TACData {
     <#
     .SYNOPSIS
         Reads a CSV file and returns the content as a System.Object array.
@@ -389,105 +578,45 @@ function Read-TACCSV {
     #>
     param (
         [Parameter(Mandatory=$true)]
-        [string]$Path
+        [string[]]$Path
     )
+    # Variables declared in the function scope
+    $Backup_Files = @()
+    Write-Verbose "Reading CSV files from path: $Path"
+    Write-Verbose "Path is of type: $($Path.GetType().FullName)"
 
-    if (-not (Test-Path -Path $Path)) {
-        Write-Error "Read-CsvFile: CSV file not found at path: $CsvFilePath"
-        return $null
+    #---------------------------------- ERROR CHECKING START----------------------------------
+    # Check if the paths are valid
+    foreach ($Each in $Path) {
+        Write-Verbose "Checking path: $Each"
+        if (-not (Test-Path -Path $Each)) {
+            Write-Error "Read-CsvFile: CSV file not found at path: $Each"
+            return $null
+        }
     }
+    #---------------------------------- ERROR CHECKING END----------------------------------
 
-    try {
-        $CsvObject = Import-Csv -Path $Path
-        return $CsvObject
+    foreach($File in $Path) {
+        try {
+            $data = Import-Csv -Path $File
+            $Backup_Files  += ,$data
+            Write-Verbose "Imported CSV file: $File to $Backup_Files"
+        }
+        catch {
+            
+            Write-Error "Failed to import CSV file: $_"
+            Write-Error $_.Exception.Message
+            return
+        }
     }
-    catch {
-        
-        Write-Error "Failed to import CSV file: $_"
-        Write-Error $_.Exception.Message
-        return $null
-    }
-}
-
-# Public function to read an XML file and return a System.Object
-function Read-TACXML {
-    <#
-    .SYNOPSIS
-        Reads an XML file and returns the content as a System.Object.
-
-    .DESCRIPTION
-        Reads an XML file exported using Export-Clixml and returns the resulting object.
-
-    .PARAMETER Path
-        The full file path to the XML file to import.
-
-    .INPUTS
-        System.String (Path)
-
-    .OUTPUTS
-        System.Object[] (XML Data)
-
-    .EXAMPLE
-        $xmlData = Read-TACXML -Path "C:\Path\to\yourfile.xml"
-        Imports data from the specified XML file into $xmlData.
-    .NOTES
-        This script is provided as-is and is not supported by me. Please test before using in a production environment.
-        If you modify the script, please give credit to the original author.
-        Author: Ferm1on
-        "Dream of electric sheep."
-    #>
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Path
-    )
-
-    try {
-        $XmlObject = Import-Clixml -Path $Path
-        return $XmlObject
-    }
-    catch {
-        Write-Error "Failed to import XML file: $_"
-        Write-Error $_.Exception.Message
-        return $null
-    }
+    return $Backup_Files
 }
 
 # Export the functions
-Export-ModuleMember -Function BackUp-TACData, Read-TACCSV, Read-TACXML
+Export-ModuleMember -Function BackUp-TACData, Read-TACData
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
----- Check for Header Consistency ----
 
-$path = "data.csv"
-$lines = Get-Content -Path $path
-$headerColumns = ($lines[0] -split ",").Count
-
-for ($i = 1; $i -lt $lines.Count; $i++) {
-    $rowColumns = ($lines[$i] -split ",").Count
-    if ($rowColumns -ne $headerColumns) {
-        Write-Warning "Row $i has $rowColumns columns; expected $headerColumns"
-    }
-}
-
----- Detect Empty or Null Values ----
-
-$data | ForEach-Object {
-    foreach ($prop in $_.PSObject.Properties) {
-        if (-not $prop.Value) {
-            Write-Warning "Missing value in column '$($prop.Name)' on row: $($_)"
-        }
-    }
-}
-
----- Validate Required Columns Exist ----
-
-$requiredColumns = @("Name", "Age", "Email")
-foreach ($col in $requiredColumns) {
-    if (-not ($data[0].PSObject.Properties.Name -contains $col)) {
-        Write-Error "Missing required column: $col"
-    }
-}
-#>
 
 #__________________________ Function Additions and Bugs __________________________
 # Add more Verbose Options
