@@ -4,9 +4,45 @@
 # Test Get-Help output works properly
 Get-Help Read-TACData -Full
 
+#----------------------------------------- Check CivicAddresses -----------------------------------------
 # Test simple load CSV CivicAddresses file.
+$CivicASum = (Get-FileHash -PAth .\CivicAddress_1503.csv -Algorithm SHA256).Hash
 $CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress
 $CivicA
+# Test simple load CSV CivicAddresses with good checksum Validation
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum
+# Test verbose proper propagation.
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Verbose
+# Test verbose with good checksum
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum -Verbose
+# Test Bad checksum
+$CivicASum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum -Verbose
+
+# Test simple load Xml CivicAddresses file.
+$CivicBSum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress
+$CivicB
+# Test simple load XML CivicAddresses with good checksum Validation
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Checksum $CivicBSum
+# Test verbose proper propagation.
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Verbose
+# Test verbose with good checksum
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Checksum $CivicBSum -Verbose
+# Test Bad checksum
+$CivicBSum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
+$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicBSum
+$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicBSum -Verbose
+
+# Compare CVS and XML File
+if (-not (Compare-Object $CivicA $CivicB)) {
+    'Arrays are equal'
+} else {
+    'Arrays differ'
+}
+#----------------------------------------- Check CivicAddresses -----------------------------------------
+
 
 # Test simple load CSV LocationSchemas file.
 $LocationA = Read-TACData -Path .\LocationSchema_1503.csv -PropertyType LocationSchema
