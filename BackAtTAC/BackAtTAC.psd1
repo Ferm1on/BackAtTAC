@@ -30,7 +30,8 @@ Get-Module
 
 @{
     RootModule           = 'BackAtTAC.psm1'
-    ModuleVersion        = '3.0'
+    NestedModules        = @('BackAtTAC_Globals.psm1')
+    ModuleVersion        = '3.1'
     GUID                 = '0b3bc9ef-fc8a-4fbd-a0f2-cc8fd3ec7a92'
     Author               = 'Ferm1on'
     Description          = 'Teams Admin Center Backup Module'
