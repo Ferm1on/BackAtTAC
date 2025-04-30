@@ -73,18 +73,18 @@ $Properties = @(
     'WAP'
 )
 $PathCSV = @(
-    '.\CivicAddress_1503.csv',
-    '.\LocationSchema_1503.csv',
-    '.\Subnet_1503.csv',
-    '.\Switch_1503.csv',
-    '.\WaP_1503.csv'
+    '.\CivicAddress_2404.csv',
+    '.\LocationSchema_2404.csv',
+    '.\Subnet_2404.csv',
+    '.\Switch_2404.csv',
+    '.\WaP_2404.csv'
 )
 $PathXML = @(
-    '.\CivicAddress_1503.xml',
-    '.\LocationSchema_1503.xml',
-    '.\Subnet_1503.xml',
-    '.\Switch_1503.xml',
-    '.\WaP_1503.xml'
+    '.\CivicAddress_2404.xml',
+    '.\LocationSchema_2404.xml',
+    '.\Subnet_2404.xml',
+    '.\Switch_2404.xml',
+    '.\WaP_2404.xml'
 )
 
 # testing mmulti import of files with Auto properties guess
@@ -92,3 +92,18 @@ Read-TACData -Path $PathCSV
 
 # Testing multi import of files with especified Properties
 Read-TACData -Path $PathCSV -Properties $Properties
+
+# Smaller arrays for testing
+$Properties = @(
+    'Subnet',
+    'Switch'
+)
+
+$PathCSV = @(
+    '.\Subnet_2404.csv',
+    '.\Switch_2404.csv'
+)
+
+# To test multiple imports at once do.
+$MyValue = @(Read-TACDAta -Path $PathCSV -Properties $Properties) 
+# MyValue will be an array of all objects

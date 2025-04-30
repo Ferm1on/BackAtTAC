@@ -139,7 +139,7 @@ function Read-File {
         if ((Get-FileHash -Path $Path -Algorithm SHA256).Hash -eq $Checksum) {
             Write-Verbose "File checksum integrity check passed."
         } else {
-            Write-Error "File integrity check failed. File may be corrupted."
+            Write-Error "File integrity check failed. File may be corrupted or wrong file input."
             return
         }
     }
@@ -444,7 +444,7 @@ function Read-TACData {
          [string[]]$Checksum
     )
     # Variable Definitions
-    $Backup_Files = @()
+    $Backup_Files = [System.Collections.ArrayList]::new()
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     # Build Properties Array based on file names, if file name is non standard throw an error.
@@ -495,22 +495,16 @@ function Read-TACData {
             Write-Error "Checksum array not the same length as Path array"
             return
         }
+
+        # Check if any $Checksum elements are null
+        $bad = $Checksum | Where-Object { [string]::IsNullOrWhiteSpace($_) }
+        if ($bad) {
+            Write-Error "Checksum array contains null or empty value(s): $($bad -join ', ')"
+            return
+        }
     }
     #------------------------------------------- ERROR CHECKING END -------------------------------------------
     
-   <#foreach($File in $Path) {
-        try {
-            $data = Import-Csv -Path $File
-            $Backup_Files  += ,$data
-            Write-Verbose "Imported CSV file: $File to $Backup_Files"
-        }
-        catch {
-            
-            Write-Error "Failed to import CSV file: $_"
-            Write-Error $_.Exception.Message
-            return
-        }
-    }#>
     if($Checksum){
         # If checksum is provided, call function with checksum.
         for ($i = 0; $i -lt $Path.Count; $i++) {
@@ -520,7 +514,7 @@ function Read-TACData {
         
             try {
                 $data = Read-File -Path $File -Property $Property -Checksum $Hash
-                $Backup_Files += ,$data
+                $Backup_Files.Add($data) | Out-Null
             }
             catch {
                 Write-Error "Failed to import CSV file: $_"
@@ -534,7 +528,7 @@ function Read-TACData {
         
             try {
                 $data = Read-File -Path $File -Property $Property
-                $Backup_Files += ,$data
+                $Backup_Files.Add($data) | Out-Null
             }
             catch {
                 Write-Error "Failed to import file: $_"
@@ -566,34 +560,4 @@ Error Checking and Logging: Implement some logging for job outcomes. For example
 If a job encountered an error, log it to a file or include it in the XML (perhaps as a special entry). This will help diagnose issues in scheduled runs where no one is watching the console. 
 Logging the count of objects retrieved per category is also useful (e.g., “Exported 42 Teams, 10 Policies…”). 
 This can be done in the main thread once results are in, and can be output to the console or a log file.
-#>
-
-<#
-
-function Read-TACData {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)] [string[]] $Path,
-        [Parameter()]         [string[]] $Properties,
-        [Parameter()]         [string[]] $Checksum
-    )
-
-    # use a dynamic list rather than immutable object[]
-    $Backup_Files = [System.Collections.ArrayList]::new()
-
-    for ($i = 0; $i -lt $Path.Count; $i++) {
-        $File     = $Path[$i]
-        $Property = $Properties[$i]
-        $Hash     = if ($Checksum) { $Checksum[$i] } else { $null }
-
-        $data = Read-File -Path $File -Property $Property -Checksum $Hash
-
-        # Add the *entire* $data array as a single element
-        $Backup_Files.Add($data) | Out-Null
-    }
-
-    # return a plain array-of-arrays
-    return ,$Backup_Files
-}
-
 #>
