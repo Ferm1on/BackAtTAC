@@ -65,16 +65,16 @@ $All_Properties_Exporters = @{
         & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 
-    WAP = { 
+    WaP = { 
         param ($Path, $Write_File, $CSV, $XML, $Fast)
 
-        $WAP = Get-CsOnlineLisWirelessAccessPoint
-        if (-not $WAP -or $WAP.Count -eq 0) {
-            Write-Verbose "No WAP found in Teams Admin Center; skipping WAP export."
+        $WaP = Get-CsOnlineLisWirelessAccessPoint
+        if (-not $WaP -or $WaP.Count -eq 0) {
+            Write-Verbose "No WaP found in Teams Admin Center; skipping WaP export."
             return
         }
 
-        & $Write_File -FolderPath $Path -Property $WAP -CSV:$CSV -XML:$XML -Fast:$Fast
+        & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast
     }
 }
 
@@ -159,7 +159,7 @@ $All_Properties_Parameters = @{
         [System.Tuple[string,bool]]::New("",            $false)
     )
 
-    WAP = @(
+    WaP = @(
         [System.Tuple[string,bool]]::New("Bssid",       $false)
         [System.Tuple[string,bool]]::New("Description", $false)
         [System.Tuple[string,bool]]::New("LocationId",  $false)

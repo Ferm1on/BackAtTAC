@@ -37,7 +37,7 @@ Available Options: "CSV", "XML", "Fast"
 
 # Write a file to the specified path. The file name is generated dynamically based on the property type and current date.
 function Write-File {
-    [CmdletBinding()] #<-- This binding lets you propagate -Verbose to sub functions.
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [string]$FolderPath,
@@ -114,16 +114,16 @@ $Write_File = [ScriptBlock]::Create((Get-Command Write-File -CommandType Functio
 # This fuction checks if the file is a CSV or XML file, and that the file schema matches the MicrosoftTeams 7.0.0 scheme.
 # Optionally, you can pass a SHA256 checksum to validate the file integrity further.
 function Read-File {
-    [CmdletBinding()] #<-- This binding lets you propagate -Verbose to sub functions.
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Path,
 
         [Parameter(Mandatory=$true)]
-        [string]$PropertyType,
+        [string]$Property,
 
         [Parameter(Mandatory=$false)]
-        [string]$Checksum = $null
+        [string]$Checksum
     )
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
@@ -152,7 +152,7 @@ function Read-File {
             $CsvObject = Import-Csv -Path $Path
         
             # Check existence and non-null for each column in CSV schema
-            foreach ($tuple in $All_Properties_Parameters[$PropertyType]) {
+            foreach ($tuple in $All_Properties_Parameters[$Property]) {
                 $colName    = $tuple.Item1
                 $isRequired = $tuple.Item2
         
@@ -197,7 +197,7 @@ function Read-File {
             $XmlObject = Import-Clixml -Path $Path
 
             # Check existence and non-null for each column in XML schema
-            foreach ($tuple in $All_Properties_Parameters[$PropertyType]) {
+            foreach ($tuple in $All_Properties_Parameters[$Property]) {
                 $colName    = $tuple.Item1
                 $isRequired = $tuple.Item2
 
@@ -264,7 +264,7 @@ function BackUp-TACData {
 
     .PARAMETER Properties (Optional)
         An array of Teams Admin Center property names to export (e.g., 'CivicAddress', 'LocationSchema'). If omitted, all properties are exported.
-        Currently supported properties: 'CivicAddress', 'LocationSchema', 'Subnet', 'Switch', 'Port', 'WAP'.
+        Currently supported properties: 'CivicAddress', 'LocationSchema', 'Subnet', 'Switch', 'Port', 'WaP'.
 
     .PARAMETER CSV (Optional)
         Export only in CSV format. if both CSV and XML are selected, both formats will be exported.
@@ -306,7 +306,7 @@ function BackUp-TACData {
         "Dream of electric sheep."
     #>
     
-    [CmdletBinding()] #<-- This binding lets you propagate -Verbose to sub functions.
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Path,
@@ -407,22 +407,22 @@ function Read-TACData {
     .PARAMETER Path
         The full file path to the backup file to import.
     
-    .PARAMETER PropertyType
-        The type of property to import (e.g., CivicAddress, LocationSchemachema, Switch, Port, WAP).
+    .PARAMETER Properties
+        The type of property to import (e.g., CivicAddress, LocationSchemachema, Switch, Port, WaP).
     
     .PARAMETER Checksum
         The SHA256 checksum of the backup file to validate its integrity.
     
     .INPUTS
         System.String (Path)
-        System.String (PropertyType)
+        System.String (Properties)
         System.String (Checksum)
 
     .OUTPUTS
         System.Object (Backup data)
 
     .EXAMPLE
-        $csvData = Read-TACData -Path "C:\Path\to\<yourfile.csv>" -PropertyType "CivicAddress" -Checksum "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+        $csvData = Read-TACData -Path "C:\Path\to\<yourfile.csv>" -Properties "CivicAddress" -Checksum "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
         Import data from the specified file into $csvData.
 
     .NOTES
@@ -432,19 +432,105 @@ function Read-TACData {
         "Dream of electric sheep."
     #>
 
-    [CmdletBinding()] #<-- This binding lets you propagate -Verbose to sub functions.
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Path,
 
-        [Parameter(Mandatory=$true)]
-        [string]$PropertyType,
+        [Parameter(Mandatory=$false)]
+        [string[]]$Properties,
 
         [Parameter(Mandatory=$false)]
-         [string]$Checksum = $null
+         [string[]]$Checksum
     )
-    # Variables declared in the function scope
-    return Read-File -Path $Path -PropertyType $PropertyType -Checksum $Checksum
+    # Variable Definitions
+    $Backup_Files = @()
+
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+    # Build Properties Array based on file names, if file name is non standard throw an error.
+    if (-not $Properties) {
+        $Properties = @()
+    
+        foreach ($file in $Path) {
+            try {
+                # strip path + extension, then grab everything before the first “_”
+                $baseName = [IO.Path]::GetFileNameWithoutExtension($file)
+                $key      = $baseName.Split('_')[0]
+    
+                # if it’s not one of the allowed keys, throw
+                if (-not $All_Properties_Parameters.ContainsKey($key)) {
+                    Write-Error "Invalid property '$key' in file '$file'. Allowed properties are: $($All_Properties_Parameters.Keys -join ', ')"
+                    return
+                }
+    
+                # use the canonical key from the hashtable (preserves your exact casing)
+                $canonical = ($All_Properties_Parameters.Keys |
+                              Where-Object { $_ -ieq $key })[0]
+    
+                $Properties += $canonical
+            }
+            catch {
+                Write-Error $_
+                return
+            }
+        }
+    } else {
+         # Check $Properties Array size against $Path array size.
+        if (-Not ($Path.Count -eq $Properties.Count)){
+            Write-Error "Properties array not the same length as Path array"
+            return
+        }
+        
+        # Test if provided Properties are valid find any entries that aren’t valid keys
+        $invalid = $Properties | Where-Object { -not $All_Properties_Parameters.ContainsKey($_) }
+    
+        if ($invalid) {
+            throw "Invalid property key(s): $($invalid -join ', '). `nAllowed properties are: $($All_Properties_Parameters.Keys -join ', ')"
+        }
+    }
+
+    # Check $Checksum Array size against $Path array size if provided
+    if($checksum){
+        if (-Not ($Path.Count -eq $Checksum.Count)){
+            Write-Error "Checksum array not the same length as Path array"
+            return
+        }
+    }
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
+    
+   <#foreach($File in $Path) {
+        try {
+            $data = Import-Csv -Path $File
+            $Backup_Files  += ,$data
+            Write-Verbose "Imported CSV file: $File to $Backup_Files"
+        }
+        catch {
+            
+            Write-Error "Failed to import CSV file: $_"
+            Write-Error $_.Exception.Message
+            return
+        }
+    }#>
+
+    for ($i = 0; $i -lt [Math]::Min($Path.Count, $Properties.Count); $i++) {
+        $File     = $Path[$i]
+        $Property = $Properties[$i]
+        $Hash = $Checksum[$i]
+    
+        try {
+            $data = 
+            $Backup_Files += ,$data
+            Write-Verbose "Imported CSV file: $File (property: $Property)"
+        }
+        catch {
+            Write-Error "Failed to import CSV file: $_"
+            Write-Error $_.Exception.Message
+            return
+        }
+    }
+    
+
+    return Read-File -Path $Path -Properties $Properties -Checksum $Checksum
 }
 
 # Export public functions
