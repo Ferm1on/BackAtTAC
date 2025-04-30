@@ -63,3 +63,32 @@ $WAPA
 
 # Test verbose proper propagation.
 $CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Verbose
+
+#---------------------------------- Check $Properties and $Path arrays ----------------------------------
+$Properties = @(
+    'CivicAddress',
+    'LocationSchema',
+    'Subnet',
+    'Switch',
+    'WAP'
+)
+$PathCSV = @(
+    '.\CivicAddress_1503.csv',
+    '.\LocationSchema_1503.csv',
+    '.\Subnet_1503.csv',
+    '.\Switch_1503.csv',
+    '.\WaP_1503.csv'
+)
+$PathXML = @(
+    '.\CivicAddress_1503.xml',
+    '.\LocationSchema_1503.xml',
+    '.\Subnet_1503.xml',
+    '.\Switch_1503.xml',
+    '.\WaP_1503.xml'
+)
+
+# testing mmulti import of files with Auto properties guess
+Read-TACData -Path $PathCSV
+
+# Testing multi import of files with especified Properties
+Read-TACData -Path $PathCSV -Properties $Properties

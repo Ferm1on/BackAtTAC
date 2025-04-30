@@ -435,7 +435,7 @@ function Read-TACData {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$Path,
+        [string[]]$Path,
 
         [Parameter(Mandatory=$false)]
         [string[]]$Properties,
@@ -511,26 +511,39 @@ function Read-TACData {
             return
         }
     }#>
-
-    for ($i = 0; $i -lt [Math]::Min($Path.Count, $Properties.Count); $i++) {
-        $File     = $Path[$i]
-        $Property = $Properties[$i]
-        $Hash = $Checksum[$i]
-    
-        try {
-            $data = 
-            $Backup_Files += ,$data
-            Write-Verbose "Imported CSV file: $File (property: $Property)"
+    if($Checksum){
+        # If checksum is provided, call function with checksum.
+        for ($i = 0; $i -lt $Path.Count; $i++) {
+            $File     = $Path[$i]
+            $Property = $Properties[$i]
+            $Hash = $Checksum[$i]
+        
+            try {
+                $data = Read-File -Path $File -Property $Property -Checksum $Hash
+                $Backup_Files += ,$data
+            }
+            catch {
+                Write-Error "Failed to import CSV file: $_"
+                return
+            }
         }
-        catch {
-            Write-Error "Failed to import CSV file: $_"
-            Write-Error $_.Exception.Message
-            return
+    } else {
+        for ($i = 0; $i -lt $Path.Count; $i++) {
+            $File     = $Path[$i]
+            $Property = $Properties[$i]
+        
+            try {
+                $data = Read-File -Path $File -Property $Property
+                $Backup_Files += ,$data
+            }
+            catch {
+                Write-Error "Failed to import file: $_"
+                return
+            }
         }
     }
-    
-
-    return Read-File -Path $Path -Properties $Properties -Checksum $Checksum
+    # Return array of imported data
+    return $Backup_Files
 }
 
 # Export public functions
@@ -546,10 +559,41 @@ Export-ModuleMember -Function BackUp-TACData, Read-TACData
 # Add fast option to Read-TACData. (Use -AsJob for fast option)
 # Add a -Force option to the Write-File function to overwrite existing files without prompting.
 # Add return value of a checksum to Write-File function. This will allow the user to verify the integrity of the file after writing it later
+# Consider adding Write-Error $_.Exception.Message to catch errors.
 
 <#
 Error Checking and Logging: Implement some logging for job outcomes. For example, after a job finishes, check $job.State and $job.Error (or catch exceptions within the job scriptblock). 
 If a job encountered an error, log it to a file or include it in the XML (perhaps as a special entry). This will help diagnose issues in scheduled runs where no one is watching the console. 
 Logging the count of objects retrieved per category is also useful (e.g., “Exported 42 Teams, 10 Policies…”). 
 This can be done in the main thread once results are in, and can be output to the console or a log file.
+#>
+
+<#
+
+function Read-TACData {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string[]] $Path,
+        [Parameter()]         [string[]] $Properties,
+        [Parameter()]         [string[]] $Checksum
+    )
+
+    # use a dynamic list rather than immutable object[]
+    $Backup_Files = [System.Collections.ArrayList]::new()
+
+    for ($i = 0; $i -lt $Path.Count; $i++) {
+        $File     = $Path[$i]
+        $Property = $Properties[$i]
+        $Hash     = if ($Checksum) { $Checksum[$i] } else { $null }
+
+        $data = Read-File -Path $File -Property $Property -Checksum $Hash
+
+        # Add the *entire* $data array as a single element
+        $Backup_Files.Add($data) | Out-Null
+    }
+
+    # return a plain array-of-arrays
+    return ,$Backup_Files
+}
+
 #>
