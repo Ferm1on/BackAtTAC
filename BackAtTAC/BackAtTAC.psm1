@@ -177,7 +177,7 @@ function Read-File {
                     if ($badIndices) {
                         # adjust to human-friendly line numbers (+2 because header is line 1) <-- NEEDS TESTING
                         $badLines = $badIndices | ForEach-Object { $_ + 2 }
-                        Write-Error "Required column '$colName' has empty values at CSV line(s): $($badLines -join ', ')"
+                        Write-Error "Required column '$colName' on $Path has empty values at CSV line(s): $($badLines -join ', ')"
                         return
                     }
                 }

@@ -7,33 +7,33 @@ Get-Help Read-TACData -Full
 #----------------------------------------- Check CivicAddresses -----------------------------------------
 # Test simple load CSV CivicAddresses file.
 $CivicASum = (Get-FileHash -PAth .\CivicAddress_1503.csv -Algorithm SHA256).Hash
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress
 $CivicA
 # Test simple load CSV CivicAddresses with good checksum Validation
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicASum
 # Test verbose proper propagation.
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Verbose
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Verbose
 # Test verbose with good checksum
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum -Verbose
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicASum -Verbose
 # Test Bad checksum
 $CivicASum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicASum -Verbose
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicASum
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicASum -Verbose
 
 # Test simple load Xml CivicAddresses file.
 $CivicBSum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
-$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -Propertties CivicAddress
 $CivicB
 # Test simple load XML CivicAddresses with good checksum Validation
-$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Checksum $CivicBSum
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -Propertties CivicAddress -Checksum $CivicBSum
 # Test verbose proper propagation.
-$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Verbose
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -Propertties CivicAddress -Verbose
 # Test verbose with good checksum
-$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -PropertyType CivicAddress -Checksum $CivicBSum -Verbose
+$CivicB = Read-TACData -Path .\CivicAddress_1503.xml -Propertties CivicAddress -Checksum $CivicBSum -Verbose
 # Test Bad checksum
 $CivicBSum = (Get-FileHash -PAth .\CivicAddress_1503.xml -Algorithm SHA256).Hash
-$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicBSum
-$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Checksum $CivicBSum -Verbose
+$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicBSum
+$CivicB = Read-TACData -Path .\CivicAddress_1503.csv -Propertties CivicAddress -Checksum $CivicBSum -Verbose
 
 # Compare CVS and XML File
 if (-not (Compare-Object $CivicA $CivicB)) {
@@ -45,24 +45,24 @@ if (-not (Compare-Object $CivicA $CivicB)) {
 
 
 # Test simple load CSV LocationSchemas file.
-$LocationA = Read-TACData -Path .\LocationSchema_1503.csv -PropertyType LocationSchema
+$LocationA = Read-TACData -Path .\LocationSchema_1503.csv -Propertties LocationSchema
 $LocationA
 
 # Test simple load CSV Subnet file.
-$SubnetA = Read-TACData -Path .\Subnet_1503.csv -PropertyType Subnet
+$SubnetA = Read-TACData -Path .\Subnet_1503.csv -Propertties Subnet
 $SubnetA
 
 # Test simple load CSV Switch file.
-$SwitchA = Read-TACData -Path .\Switch_1503.csv -PropertyType Switch
+$SwitchA = Read-TACData -Path .\Switch_1503.csv -Propertties Switch
 $SwitchA
 
 # Test simple load CSV WAP file.
-$WAPA = Read-TACData -Path .\Switch_1503.csv -PropertyType WAP
+$WAPA = Read-TACData -Path .\Switch_1503.csv -Propertties WAP
 $WAPA
 
 
 # Test verbose proper propagation.
-$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -PropertyType CivicAddress -Verbose
+$CivicA = Read-TACData -Path .\CivicAddress_1503.csv -Properties CivicAddress -Verbose
 
 #---------------------------------- Check $Properties and $Path arrays ----------------------------------
 $Properties = @(
@@ -107,3 +107,66 @@ $PathCSV = @(
 # To test multiple imports at once do.
 $MyValue = @(Read-TACDAta -Path $PathCSV -Properties $Properties) 
 # MyValue will be an array of all objects
+
+# Get checksum for files SHA246
+$All_Hashes = [System.Collections.ArrayList]::new()
+
+foreach ($File in $PathCSV) {
+    $FileHash = Get-FileHash -Path $File -Algorithm SHA256
+    $All_Hashes.Add($FileHash) | Out-Null
+}
+
+# Build only hash array
+$HashArray = @()
+
+foreach ($Hash in $All_Hashes) {
+    $HashArray += $Hash.Hash
+}
+
+# Read all files with checksum validation
+$MyValue = Read-TACDAta -Path $PathCSV -Properties $Properties -Checksum $HashArray
+
+# Test if -Checksum array is the wrong size.
+$Bad_HashArray = @()
+for ($i = 0; $i -lt ($HashArray.Count -1 ); $i++) {
+    $Bad_HashArray += $HashArray[$i]
+}
+$MyValue = Read-TACDAta -Path $PathCSV -Properties $Properties -Checksum $Bad_HashArray
+
+# Testing bad Properties array size.
+$Bad_Properties = @(
+    'Subnet',
+    'Switch',
+    'WAP'
+)
+$MyValue = Read-TACDAta -Path $PathCSV -Properties $Bad_Properties -Checksum $HashArray
+
+# Testing unsupported property inside property array.
+$Bad_Properties = @(
+    'CivicAddress',
+    'Subnet',
+    'Switch',
+    'WAP',
+    'BadProperty'
+)
+$MyValue = Read-TACDAta -Path $PathCSV -Properties $Bad_Properties -Checksum $HashArray
+
+# Testing file missing "Description" attribute, i.e. missing column.
+# The file bellow is missing description information
+$MyValue =  Read-TACData -Path .\CivicAddress_MissingColumn.csv
+
+
+# Testing file missing required "Company" attribute, i.e. missing column.
+# The file bellow is missing company information
+$MyValue =  Read-TACData -Path .\LocationSchema_MissingRColumn.csv
+
+if (-not ($CsvObject[0].PSObject.Properties.Name -contains $colName)) {
+    if ($isRequired) {
+        Write-Host "$colName column is required, CSV not loaded"
+        return
+    }
+    else {
+        Write-Host "$colName does not exist"
+        continue
+    }
+}
