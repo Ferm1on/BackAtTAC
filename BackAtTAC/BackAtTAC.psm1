@@ -58,6 +58,7 @@ function Write-File {
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     if (-not $Property -or $Property.Count -eq 0) {
         Write-Warning "Write-File: The provided object is null or empty, skipping export."
+        Write-Verbose "Write-File: The provided object is null or empty, skipping export."
         return
     }
     #------------------------------------------- ERROR CHECKING END -------------------------------------------
@@ -86,25 +87,28 @@ function Write-File {
                 )
                 $Jobs | Wait-Job | Receive-Job
                 $Jobs | Remove-Job
+                Write-Verbose "Exported '$FullFilePath.csv' and '$FullFilePath.xml' successfully -Fast"
 
             } else {
                 # Sequential 
                 $Property | Export-Csv -Path "$FullFilePath.csv" -NoTypeInformation -Force
                 $Property | Export-Clixml -Path "$FullFilePath.xml" -Force
+                Write-Verbose "Exported '$FullFilePath.csv' and '$FullFilePath.xml' successfully"
             }
         }
         elseif ($CSV) {
             # Export the object to CSV
-            $Property | Export-Csv -Path "$FullFilePath.csv" -NoTypeInformation -Force  
+            $Property | Export-Csv -Path "$FullFilePath.csv" -NoTypeInformation -Force
+            Write-Verbose "Exported '$FullFilePath.csv' successfully"
         } elseif ($XML) {
             # Export the object to XML
             $Property | Export-Clixml -Path "$FullFilePath.xml" -Force
+             Write-Verbose "Exported '$FullFilePath.xml' successfully"
         } 
-
         return
 
     } catch {
-        Write-Error $_.Exception.Message # <-- Log the error message is possibly not behaving as intented FIX
+        Write-Error "Could not export '$FullFilePath': $_"
         return
     }
 }
@@ -130,16 +134,16 @@ function Read-File {
 
     # Check if the path is valid
     if (-not (Test-Path -Path $Path)) {
-        Write-Error "Read-CsvFile: CSV file not found at path: $Path"
+        Write-Error "Read-CsvFile: CSV file not found at path: '$Path'"
         return
     }
 
     # If provided, check if checksum matches.
     if ($Checksum) {
         if ((Get-FileHash -Path $Path -Algorithm SHA256).Hash -eq $Checksum) {
-            Write-Verbose "File checksum integrity check passed."
+            Write-Verbose "File checksum integrity for '$Path' passed."
         } else {
-            Write-Error "File integrity check failed. File may be corrupted or wrong file input."
+            Write-Error "File integrity check failed for '$Path'. File may be corrupted or wrong file input."
             return
         }
     }
@@ -159,14 +163,15 @@ function Read-File {
                 # Check Column existence
                 if (-not ($CsvObject[0].PSObject.Properties.Name -contains $colName)) {
                     if ($isRequired) {
-                        Write-Error "$colName column is required, CSV not loaded"
+                        Write-Error "'$colName' column is required, CSV not loaded"
                         return
                     }
                     else {
-                        Write-Verbose "$colName does not exist"
+                        Write-Verbose "'$colName' does not exist"
                         continue
                     }
                 }
+                
         
                 # Column is present, if it's required, ensure no row is empty/null
                 if ($isRequired) {
@@ -177,14 +182,15 @@ function Read-File {
                     if ($badIndices) {
                         # adjust to human-friendly line numbers (+2 because header is line 1) <-- NEEDS TESTING
                         $badLines = $badIndices | ForEach-Object { $_ + 2 }
-                        Write-Error "Required column '$colName' on $Path has empty values at CSV line(s): $($badLines -join ', ')"
+                        Write-Error "Required column '$colName' on '$Path' has empty values at CSV line(s): $($badLines -join ', ')"
                         return
                     }
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
                 }
             }
 
-            Write-Verbose "CSV file: $Path passed attribute integrity check."
-            Write-Verbose "Imported $Path to enviroment."
+            Write-Verbose "CSV file: '$Path' passed attribute integrity check."
+            Write-Verbose "Imported '$Path' to enviroment."
             return $CsvObject
         }
         catch { 
@@ -224,6 +230,7 @@ function Read-File {
                         Write-Error "Required property '$colName' is empty in XML element indices: $($badLines -join ', ')"
                         return
                     }
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
                 }
             }
             
@@ -256,7 +263,8 @@ function BackUp-TACData {
         Backs up property data from Microsoft Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
         Allows optional multithreading for faster (default is slow) export, uses switch for CSV/XML export preferences,
         and can optionally filter which properties are backed up. 
-        Default: All properties are backed up and exported in both CSV and XML formats. Default file name for backups are '<Property>_DDMM.csv' and '<Property>_DDMM.xml'.
+        Default: All properties are backed up and exported in both CSV and XML formats overwriting existing files with the same name. 
+        Default file name for backups are '<Property>_DDMM.csv' and '<Property>_DDMM.xml'.
         To get this menu use Get-Help BackUp-TACData -Full
     
     .PARAMETER Path (Mandatory)
@@ -382,11 +390,11 @@ function BackUp-TACData {
               }
           }
           
+          Write-Verbose "All properties backed up successfully."
           return
 
     } catch {
-        Write-Error "Failure on BackUp-TACData function"
-        Write-Error $_.Exception.Message
+        Write-Error "Failed to backup data from TAC: $_"
         return
     }
     
@@ -414,12 +422,12 @@ function Read-TACData {
         The SHA256 checksum of the backup file to validate its integrity.
     
     .INPUTS
-        System.String (Path)
-        System.String (Properties)
-        System.String (Checksum)
+        System.String[] (Path)
+        System.String[] (Properties)
+        System.String[] (Checksum)
 
     .OUTPUTS
-        System.Object (Backup data)
+        System.Object[] (Backup data)
 
     .EXAMPLE
         $csvData = Read-TACData -Path "C:\Path\to\<yourfile.csv>" -Properties "CivicAddress" -Checksum "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -464,8 +472,10 @@ function Read-TACData {
                 }
     
                 # use the canonical key from the hashtable (preserves your exact casing)
-                $canonical = ($All_Properties_Parameters.Keys |
-                              Where-Object { $_ -ieq $key })[0]
+                $canonical = (
+                    $All_Properties_Parameters.GetEnumerator() |
+                    Where-Object { $_.Key -ieq $key }
+                  ).Key
     
                 $Properties += $canonical
             }
@@ -474,6 +484,7 @@ function Read-TACData {
                 return
             }
         }
+        Write-Verbose "Properties array built from file names: $($Properties -join ', ')"
     } else {
          # Check $Properties Array size against $Path array size.
         if (-Not ($Path.Count -eq $Properties.Count)){
@@ -485,7 +496,8 @@ function Read-TACData {
         $invalid = $Properties | Where-Object { -not $All_Properties_Parameters.ContainsKey($_) }
     
         if ($invalid) {
-            throw "Invalid property key(s): $($invalid -join ', '). `nAllowed properties are: $($All_Properties_Parameters.Keys -join ', ')"
+            Write-Error "Invalid property key(s): $($invalid -join ', '). `nAllowed properties are: $($All_Properties_Parameters.Keys -join ', ')"
+            return
         }
     }
 
@@ -502,6 +514,7 @@ function Read-TACData {
             Write-Error "Checksum array contains null or empty value(s): $($bad -join ', ')"
             return
         }
+        Write-Verbose "Checksum Array Check: Checksum array same length as Path array and no null values found."
     }
     #------------------------------------------- ERROR CHECKING END -------------------------------------------
     
@@ -537,6 +550,7 @@ function Read-TACData {
         }
     }
     # Return array of imported data
+    Write-Verbose "Imported $($Backup_Files.Count) files."
     return $Backup_Files
 }
 
@@ -547,11 +561,8 @@ Export-ModuleMember -Function BackUp-TACData, Read-TACData
 
 
 #__________________________ Function Additions and Bugs __________________________
-# Add more Verbose Options
 # Add Teams Admin Center data backup upload function. (Dangerous as it will overwrite server data)
-# Add error check for Connect-MicrosoftTeams. Test connection and test permissions.
 # Add fast option to Read-TACData. (Use -AsJob for fast option)
-# Add a -Force option to the Write-File function to overwrite existing files without prompting.
 # Add return value of a checksum to Write-File function. This will allow the user to verify the integrity of the file after writing it later
 # Consider adding Write-Error $_.Exception.Message to catch errors.
 
