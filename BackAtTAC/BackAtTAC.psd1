@@ -21,7 +21,7 @@ To Load manifest information
 $manifest = Import-PowerShellDataFile -Path '.\YourModuleName.psd1'
 To Load this module do
 Import-Module .\BackAtTAC.psd1
-Get-Help BackUp-TACData -Full (or Read-TACCSV' or 'Read-TACXML)
+Get-Help BackUp-TACData -Full (or Read-TACData)
 To unload Module do
 Remove-Module BackAtTAC
 To List Modules do
@@ -46,8 +46,8 @@ Get-Module
     PrivateData          = @{
         PSData = @{
             Tags         = @('Teams', 'Backup', 'Microsoft365')
-            LicenseUri   = 'https://github.com/Ferm1on/Teams-Powershell-Backup-Module/blob/main/LICENSE'
-            ProjectUri   = 'https://github.com/Ferm1on/Teams-Powershell-Backup-Module'
+            LicenseUri   = 'https://github.com/Ferm1on/BackAtTAC/blob/main/LICENSE'
+            ProjectUri   = 'https://github.com/Ferm1on/BackAtTAC'
         }
     }
 }

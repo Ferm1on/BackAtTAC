@@ -18,19 +18,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 To Load this module do
-Import-Module .\BackAtTAC.psm1
-Get-Help BackUp-TACData -Full (or Read-TACCSV' or 'Read-TACXML)
+Import-Module .\BackAtTAC.psd1
+Get-Help BackUp-TACData -Full (or Read-TACData))
 To unload Module do
 Remove-Module BackAtTAC
 To List Modules do
 Get-Module
-Dependencies: MicrosoftTeams, Powershell 7.5 or higher for -Fast option.
+Dependencies: MicrosoftTeams 6.9.0, Powershell 7.5 or higher for -Fast option.
 To install Dependencies do:
+Install-Module -Name PowerShellGet -Force -AllowClobber
 Install-Module -Name MicrosoftTeams -Force -AllowClobber
-
-Input: $FolderPath, $Object
-Output: Write $Object as <Property>_DDMM.xml or <Property>_DDMM.cvs to $FolderPath.
-Available Options: "CSV", "XML", "Fast"
 #>
 
 #---------------------------------------- PRIVATE FUNCTION DEFINITIONS ----------------------------------------
