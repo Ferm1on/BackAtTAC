@@ -54,6 +54,8 @@ function Write-File {
         [Parameter(Mandatory=$false)]
         [switch]$Fast=$false
     )
+    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
+    #Write-Host "Verbose Setting: $callerVerbose"
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     if (-not $Property -or $Property.Count -eq 0) {
@@ -129,6 +131,9 @@ function Read-File {
         [Parameter(Mandatory=$false)]
         [string]$Checksum
     )
+
+    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
+    #Write-Host "Verbose Setting: $callerVerbose"
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
 
@@ -347,31 +352,47 @@ function BackUp-TACData {
         }
     }
     #------------------------------------------- ERROR CHECKING END -------------------------------------------
-
+    Write-Verbose "Backing up properties"
     try {
         # Backing Up All Properties
          # Fast Option, Backup all properties in parallel. If not selected, backup properties sequentially.
         if($Fast) {
             $jobs = @()
+
+            $FastVerbose = $false
+            if ($VerbosePreference -eq 'Continue') {
+                $FastVerbose = $true
+            }
       
               # Backup all properties else Backup selected properties.
-              if(-not $Properties -or $Properties.Count -eq 0) {
+            if(-not $Properties -or $Properties.Count -eq 0) {
+                
+                foreach ($Property in $All_Properties_Exporters.Values) {
+                    $Jobs += Start-ThreadJob -ThrottleLimit 8 -ScriptBlock $Property -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
+                }
       
-                  foreach ($Property in $All_Properties_Exporters.Values) {
-                      $Jobs += Start-ThreadJob -ThrottleLimit 8 -ScriptBlock $Property -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast
-                  }
-      
-              } else {
-      
-                  foreach ($Property in $Properties) {
-                      $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters
-                    .($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast
-                  }
-              }
-      
-              # Clean up jobs.
-              $Jobs | Wait-Job | Receive-Job
-              $jobs | Remove-Job
+            } else {
+                
+                foreach ($Property in $Properties) {
+                    $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters
+                    .($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
+                }
+            }
+              
+            # Clean up jobs.
+            $Jobs | Wait-Job
+
+            if($PSBoundParameters.ContainsKey('Verbose')) {
+                foreach ($job in $Jobs) {
+                    "=== Job $($job.Id) Verbose Output ==="
+                    $job.Verbose # | ForEach-Object { "  $_" }
+                    $job | Receive-Job
+                }
+            } else {
+                $jobs | Receive-Job
+            }
+
+            $jobs | Remove-Job
       
           } else {
               # Sequential processing of the functions
@@ -379,13 +400,13 @@ function BackUp-TACData {
               if(-not $Properties -or $Properties.Count -eq 0) {
       
                   foreach ($Property in $All_Properties_Exporters.Values) {
-                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast
+                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
                   
               } else {
       
                   foreach ($Property in $Properties) {
-                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast
+                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
               }
           }
@@ -451,6 +472,10 @@ function Read-TACData {
         [Parameter(Mandatory=$false)]
          [string[]]$Checksum
     )
+
+    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
+    #Write-Host "Verbose Setting: $callerVerbose"
+
     # Variable Definitions
     $Backup_Files = [System.Collections.ArrayList]::new()
 
@@ -526,7 +551,7 @@ function Read-TACData {
             $Hash = $Checksum[$i]
         
             try {
-                $data = Read-File -Path $File -Property $Property -Checksum $Hash
+                $data = Read-File -Path $File -Property $Property -Checksum $Hash -Verbose:$PSBoundParameters.ContainsKey('Verbose')
                 $Backup_Files.Add($data) | Out-Null
             }
             catch {
@@ -540,7 +565,7 @@ function Read-TACData {
             $Property = $Properties[$i]
         
             try {
-                $data = Read-File -Path $File -Property $Property
+                $data = Read-File -Path $File -Property $Property -Verbose:$PSBoundParameters.ContainsKey('Verbose')
                 $Backup_Files.Add($data) | Out-Null
             }
             catch {
