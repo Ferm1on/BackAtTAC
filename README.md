@@ -2,9 +2,9 @@
 
 ## Project Description
 
-**BackAtTAC** is a PowerShell module designed to automate the backup of Microsoft Teams Admin Center (TAC) configuration data, with a focus on **location-related information**. This module uses the Microsoft Teams PowerShell interface to retrieve key Teams "Locations" data (such as emergency addresses and network identifiers) and exports them to files for safekeeping. By running a single command, system administrators can capture all relevant location configuration from Teams (e.g. emergency civic addresses, network sites, subnets used for location-based routing, etc.) and save them as CSV and/or XML files. This provides an easy way to back up Teams settings that are not otherwise automatically saved, ensuring that important configuration (especially E911 location information) is preserved and can be restored or reviewed as needed.
+**BackAtTAC** is a PowerShell module designed to automate the backup of Microsoft Teams Admin Center (TAC) configuration data, with a focus on **location-related information**. This module retrieves key Teams "Locations" data (such as emergency addresses, and network identifiers) and exports them to CSV or XML files for safekeeping. and save them as CSV and/or XML files. This provides an easy way to back up Teams settings that are not otherwise automatically saved, ensuring that important configuration (especially E911 location information) is preserved and can be restored or reviewed as needed.
 
-BackAtTAC supports exporting data in both **CSV** and **XML** formats, and it can operate in a multi-threaded mode to speed up the backup process in large environments. The module also includes helper functions to read the exported files back into PowerShell objects, making it easy to verify or utilize the backed-up data. It is intended for **system administrators** who manage Microsoft Teams, particularly those responsible for Teams Phone and emergency location configurations, to maintain backups of their Teams Admin Center settings.
+BackAtTAC supports exporting data in both **CSV** and **XML** formats. The module also includes helper functions to read the exported files back into PowerShell objects, making it easy to verify or utilize the backed-up data. It is intended for **system administrators** who manage Microsoft Teams, particularly those responsible for Teams Phone and emergency location configurations.
 
 ## Features
 
@@ -20,23 +20,25 @@ BackAtTAC supports exporting data in both **CSV** and **XML** formats, and it ca
 
 - **Selective Backup** – Allows specifying particular properties to back up. You can choose to back up all supported data (default) or only a subset (e.g., only *CivicAddresses* and *Locations* if you are focused on those).
 
-- **Parallel Processing for Speed** – An optional **Fast** mode uses multithreading to perform exports in parallel, which can significantly speed up the backup in tenants with a large amount of data. (This requires PowerShell 7.5 or later; see **Prerequisites** below.) For smaller datasets, the default sequential mode may be just as fast or more efficient due to lower overhead.
+- **Parallel Processing for Speed** – An optional **Fast** mode uses multithreading to perform exports in parallel, which may speed up the backup in tenants with a large amount of data. (This requires PowerShell 7.5 or later; see **Prerequisites** below.) For smaller datasets, the default sequential mode may be just as fast or faster due to lower overhead.
 
-- **Easy Data Retrieval** – Includes helper functions `Read-TACCSV` and `Read-TACXML` to quickly load the backed-up CSV or XML files back into PowerShell objects for review or restoration purposes.
+- **Easy Data Retrieval** – Includes helper functions `Read-TACData` to quickly load the backed-up CSV or XML files back into PowerShell objects for review or restoration purposes.
 
 ## Prerequisites
 
 Before using BackAtTAC, ensure you have the following:
 
-- **PowerShell** – Windows PowerShell 5.1 **or** PowerShell 7.x.  
-  - *Note:* The module is compatible with PowerShell 5.1 and above. However, to use the multi-threaded `-Fast` option, you need PowerShell 7.5 (or higher) where the ThreadJob capabilities are fully available. On Windows, it is recommended to use the latest PowerShell 7 release for best performance.
+- **PowerShell** – Windows PowerShell 5.1 **or** PowerShell 7.5.x.  
+  - *Note:* The module is compatible with PowerShell 5.1 and above. However, to use the multi-threaded `-Fast` option, you need PowerShell 7.5 (or higher) where the ThreadJob capabilities are fully available. On Windows, it is recommended to use the latest PowerShell 7 release for best performance. This module has been tested on PowerShell 7.5.1
 
 - **Microsoft Teams PowerShell Module** – The MicrosoftTeams module must be installed and available. BackAtTAC relies on cmdlets like `Get-CsOnlineLisLocation`, `Get-CsOnlineLisSubnet`, etc., which are provided by the Teams PowerShell module. If you don't have it installed, you can install it from the PowerShell Gallery by running:  
   ```powershell
+  Install-Module -Name PowerShellGet -Force -AllowClobber
   Install-Module -Name MicrosoftTeams -Force -AllowClobber
   ```  
+This module has been tested with MicrosoftTeams module version 6.9.0. You may find a Teams Powershell instalation guide here (https://learn.microsoft.com/en-us/microsoftteams/teams-powershell-install)
 
-- **Microsoft Teams Admin Permissions** – You must connect with an account that has the appropriate admin privileges (e.g., Teams Administrator or Global Administrator) to read Teams Admin Center data. The backup will only retrieve data that your account is authorized to access. Typically, reading emergency addresses and network topology info requires Teams communications admin or higher privileges.
+- **Microsoft Teams Admin Permissions** – You must connect with an account that has the appropriate admin privileges (e.g., Teams Telephony Administrator or Global Administrator) to read Teams Admin Center data. The backup will only retrieve data that your account is authorized to access.
 
 ## Installation
 
@@ -45,7 +47,7 @@ Follow these steps to install the BackAtTAC module:
 1. **Install Required Dependencies:** If not already done, install the Microsoft Teams PowerShell module (as shown above) and ensure you are running a supported PowerShell version. For example, on Windows you can use the latest [PowerShell 7.x](https://github.com/PowerShell/PowerShell) for full functionality.
 
 2. **Obtain the BackAtTAC Module:** You have a couple of options:
-   - **Manual Download:** Download or clone the BackAtTAC repository from GitHub. Then take the entire `BackAtTAC` folder (containing `BackAtTAC.psd1` and `BackAtTAC.psm1` files) and place it into one of your PowerShell module directories. Common locations are:  
+   - **Manual Download:** Download or clone the BackAtTAC repository from GitHub. Then take the entire `BackAtTAC` folder (containing `BackAtTAC.psd1`, `BackAtTAC.psm1` and `BackAtTAC_Globals.ps1` files) and place it into one of your PowerShell module directories. Common locations are:  
      - `%USERPROFILE%\Documents\WindowsPowerShell\Modules\` (for Windows PowerShell 5.1 or for installing for only your user)  
      - `%USERPROFILE%\Documents\PowerShell\Modules\` (for PowerShell 7+ on Windows, user-scoped)  
      - `C:\Program Files\WindowsPowerShell\Modules\` (system-wide installation for all users in Windows PowerShell 5.1)  
@@ -55,11 +57,11 @@ Follow these steps to install the BackAtTAC module:
 
 3. **Import the Module:** Once the files are in place, import the BackAtTAC module into your PowerShell session:  
    ```powershell
-   Import-Module BackAtTAC
+   Import-Module BackAtTAC -Force
    ```  
    If the module was installed to a standard module path, you can also simply open a new PowerShell session and the module may auto-load when you call one of its commands. You can verify installation by running `Get-Module -ListAvailable BackAtTAC` to see if it's listed.
 
-   Alternitavly you can simply place the **BackAtTAC.psd1** and **BackAtTAC.psm1** files in the same path you are running your backup script.
+   Alternitavly you can simply place the **BackAtTAC.psd1**, **BackAtTAC.psm1** and **BackAtTAC_Globals.ps1** files in the same path you are running your backup script and dot source them.
 
 Now you're ready to use BackAtTAC in your PowerShell environment.
 
@@ -105,25 +107,54 @@ Example of using Fast mode for all data:
 BackUp-TACData -Path "C:\TACBackup" -Fast
 ```
 
-With `-Fast` enabled, the module will spin up multiple background jobs to write the CSV and XML files concurrently for each category. This can significantly reduce total runtime in a tenant with a lot of location data. However, be aware that for very small sets of data, the overhead of managing parallel jobs might mean `-Fast` is not noticeably faster than the default sequential approach. It's recommended to use `-Fast` primarily when you expect a large volume of data in multiple categories. You may use Measure-Command{} to evaluate performance.
+With `-Fast` enabled, the module will spin up multiple background jobs to write the CSV and XML files concurrently for each category. It's recommended to use `-Fast` primarily when you expect a large volume of data in multiple categories. You may use Measure-Command{} to evaluate performance.
 
 ### Reading Back the Exported Data
 
-The BackAtTAC module not only creates backups, but also provides an easy way to **read those backup files back into PowerShell** if you need to inspect or use the data. There are two helper commands for this:
+The BackAtTAC module not only creates backups, but also provides an easy way to **read those backup files back into PowerShell** if you need to inspect or use the data. You may use the Read-TACData function to do this:
 
-- **Read-TACCSV** – Use this to import a CSV backup file. For example:  
+- **Read-TACData** – Use this to import a CSV or XML backup file. For example:  
   ```powershell
-  $civicAddressData = Read-TACCSV -Path "C:\TACBackup\CivicAddresses_2104.csv"
+  $civicAddressData = Read-TACData -Path "C:\TACBackup\CivicAddresses_2104.csv"
   ```  
-  This will read the CSV file and store the contents as an array of objects in the `$civicAddressData` variable. You can then work with those objects in PowerShell (filter them, analyze properties, etc.).
+  This will read the CSV file and store the contents as an array of objects in the `$civicAddressData` variable. 
 
-- **Read-TACXML** – Use this to import an XML backup file (which was created via `Export-Clixml`). For example:  
+Read-TACData will automatically detect if the presented file is an CVS or XML file and what type of property it is based on the file name and import it. If you are using a non-standard file name, you may specify what is the property you are trying to load.
+
   ```powershell
-  $civicAddressDataXml = Read-TACXML -Path "C:\TACBackup\CivicAddresses_2104.xml"
-  ```  
-  This will load the XML and convert it back into the original object types that were exported. This is useful if you want to preserve data types or nested object structures that might be present in the XML output.
+  $civicAddressData = Read-TACData -Path "C:\TACBackup\CivicAddresses_2104.xml" -Properties 'CivicAddress'
+  ``` 
 
-Using these helper functions, you can quickly verify the content of your backups or even use the data to restore settings if needed (though **restoration** would have to be done via the appropriate Teams cmdlets since BackAtTAC is currently read/export-only).
+Read-TACData can also be used to load multiple files at once by including an array of paths and an array of properties.
+
+  ```powershell
+      $PathCSV = @(
+          '.\FooBar1_0405.csv',
+          '.\FooBar2_0405.csv',
+          '.\FooBar3_0405.csv',
+          '.\FooBar4_0405.csv',
+          '.\FooBar5_0405.csv'
+      )
+
+      $Properties = @(
+      'CivicAddress',
+      'LocationSchema',
+      'Subnet',
+      'Switch',
+      'WAP'
+      )
+
+      $LoadedData = Read-TACData -Path $PathCSV -Properties $Properties
+```
+$LoadedData will be an array where each element corespond to a loaded property.
+
+Read-TACData includes some error checking to ensure users load properties safely into their environment. For example, if an required attribute is missing in a loaded property the import will fail, if property and path arrays supplied are of different size, the import will also fail. Finally, you may pass a SHA256 checksum of the file to Read-TACData and the function will only import the property if the checksum matches.
+
+  ```powershell
+  $LoadedData = Read-TACData -Path $PathCSV -Properties $Properties -Checksum '45CCFE7398806E65605AB6264EDC4702A1882F32B0CBD9509772EF69A9275C61'
+  ```
+
+-Checksum may also be an array of checksums. Remember to make sure to order your input arrays correspond. That is, $PathCSV[i] → $Properties[i] → $Checksum[i].
 
 ## Contribution and Feedback
 
@@ -131,3 +162,7 @@ Contributions, suggestions, and feature requests for BackAtTAC are welcome! If y
 
 This project is maintained by the author (GitHub user **Ferm1on**), and I'll update it as time and interest allows.
 "Dream of electric sheep."
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
