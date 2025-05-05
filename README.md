@@ -162,3 +162,7 @@ Contributions, suggestions, and feature requests for BackAtTAC are welcome! If y
 
 This project is maintained by the author (GitHub user **Ferm1on**), and I'll update it as time and interest allows.
 "Dream of electric sheep."
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
