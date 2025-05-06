@@ -175,7 +175,7 @@ $All_Properties_Remove_Functions = @{
     LocationSchema =
         [System.Tuple[scriptblock,string]]::New(
             {param($LocationId)
-                Remove-CsOnlineLisLocatio -LocationId $LocationId
+                Remove-CsOnlineLisLocation -LocationId $LocationId
             },
             'LocationId')
 

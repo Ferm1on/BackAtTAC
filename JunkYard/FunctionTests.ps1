@@ -163,264 +163,290 @@ $MyValue =  Read-TACData -Path .\LocationSchema_MissingRColumn.csv
 # Testing missing entries on required columns
 $MyValue =  Read-TACData -Path .\Subnet_MissingREntry.csv
 
+# Working Space for new function.
 
-# ---------------------------------------- Global Backup ----------------------------------------------------
+function Reset-TACProperty {
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact        = 'High'
+    )]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
 
+        [Parameter(Mandatory = $false)]
+        [switch]$Unsafe
+    )
 
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
 
-$All_Properties_Exporters = @{
-    CivicAddress = {
-        [CmdletBinding()]
-        param($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $CivicAddress = Get-CsOnlineLisCivicAddress 
-        if (-not $CivicAddress -or $CivicAddress.Count -eq 0) {
-            Write-Verbose "No CivicAddress found in Teams Admin Center; skipping CivicAddress export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast
+    # Error checking for $Properties: Checking all user submited properties are supported
+    if (-not $All_Properties_Remove_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud erasure of '$Property' property."
+        return
     }
 
-    LocationSchema = {
-        [CmdletBinding()]
-        param($Path, $Write_File, $CSV, $XML, $Fast)
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
 
-        $LocationSchema = Get-CsOnlineLisLocation
-        if (-not $LocationSchema -or $LocationSchema.Count -eq 0) {
-            Write-Verbose "No LocationSchema found in Teams Admin Center; skipping LocationSchema export."
-            return
-        }
-        & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast
+    #--------------------------------------------- VARIABLES START --------------------------------------------
+
+    # Build remove call function and parameters
+    $tuple = $All_Properties_Remove_Functions[$Property]
+    $Remove = $tuple.Item1
+    $Arguments = @($tuple.Item2)
+    if ($tuple.PSObject.Properties['Item3']) {
+        $Arguments += $tuple.Item3
+    }
+
+    # Download property from TAC and exit if empty.
+    $PropertyToErase = $All_Properties_Get_Functions[$Property].Invoke()
+    if (-not $PropertyToErase) {
+        Write-Verbose "No values found for property '$Property', skiping deletion."
+        return
+      }
     
-    }
+    #--------------------------------------------- VARIABLES END ----------------------------------------------
 
-    Subnet = { 
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $Subnet = Get-CsOnlineLisSubnet
-        if (-not $Subnet -or $Subnet.Count -eq 0) {
-            Write-Verbose "No Subnet found in Teams Admin Center; skipping Subnet export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast
-    }
-
-    Switch = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $Switch = Get-CsOnlineLisSwitch
-        if (-not $Switch -or $Switch.Count -eq 0) {
-            Write-Verbose "No Switch found in Teams Admin Center; skipping Switch export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast
-    }
-
-    Port = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $Port = Get-CsOnlineLisPort
-        if (-not $Port -or $Port.Count -eq 0) {
-            Write-Verbose "No Port found in Teams Admin Center; skipping Port export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast
-    }
-
-    WaP = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $WaP = Get-CsOnlineLisWirelessAccessPoint
-        if (-not $WaP -or $WaP.Count -eq 0) {
-            Write-Verbose "No WaP found in Teams Admin Center; skipping WaP export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast
-    }
-}
-
-# Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
-# item2 denotes if the property is required or not. If true, the property is required.
-$All_Properties_Parameters = @{
-
-    CivicAddress = @(
-        [System.Tuple[string,bool]]::New("AdditionalLocationInfo",  $false)
-        [System.Tuple[string,bool]]::New("City",                    $false)
-        [System.Tuple[string,bool]]::New("CityAlias",               $false)
-        [System.Tuple[string,bool]]::New("CivicAddressId",          $true )
-        [System.Tuple[string,bool]]::New("CompanyName",             $true )
-        [System.Tuple[string,bool]]::New("CompanyTaxId",            $false)
-        [System.Tuple[string,bool]]::New("Confidence",              $false)
-        [System.Tuple[string,bool]]::New("CountryOrRegion",         $true )
-        [System.Tuple[string,bool]]::New("CountyOrDistrict",        $false)
-        [System.Tuple[string,bool]]::New("DefaultLocationId",       $true )
-        [System.Tuple[string,bool]]::New("Description",             $false)
-        [System.Tuple[string,bool]]::New("Elin",                    $false)
-        [System.Tuple[string,bool]]::New("HouseNumber",             $false)
-        [System.Tuple[string,bool]]::New("HouseNumberSuffix",       $false)
-        [System.Tuple[string,bool]]::New("Latitude",                $true )
-        [System.Tuple[string,bool]]::New("Longitude",               $true )
-        [System.Tuple[string,bool]]::New("NumberOfTelephoneNumbers",$false)
-        [System.Tuple[string,bool]]::New("NumberOfVoiceUsers",      $false)
-        [System.Tuple[string,bool]]::New("PartnerId",               $false)
-        [System.Tuple[string,bool]]::New("PostDirectional",         $false)
-        [System.Tuple[string,bool]]::New("PostalCode",              $false)
-        [System.Tuple[string,bool]]::New("PreDirectional",          $false)
-        [System.Tuple[string,bool]]::New("StateOrProvince",         $false)
-        [System.Tuple[string,bool]]::New("StreetName",              $false)
-        [System.Tuple[string,bool]]::New("StreetSuffix",            $false)
-        [System.Tuple[string,bool]]::New("TenantId",                $true )
-        [System.Tuple[string,bool]]::New("ValidationStatus",        $false)
-    )
-
-    LocationSchema = @(
-        [System.Tuple[string,bool]]::New("City",                    $false)
-        [System.Tuple[string,bool]]::New("CityAlias",               $false)
-        [System.Tuple[string,bool]]::New("CivicAddressId",          $true )
-        [System.Tuple[string,bool]]::New("CompanyName",             $true)
-        [System.Tuple[string,bool]]::New("CompanyTaxId",            $false)
-        [System.Tuple[string,bool]]::New("Confidence",              $false)
-        [System.Tuple[string,bool]]::New("CountryOrRegion",         $true )
-        [System.Tuple[string,bool]]::New("CountyOrDistrict",        $false)
-        [System.Tuple[string,bool]]::New("Description",             $false)
-        [System.Tuple[string,bool]]::New("Elin",                    $false)
-        [System.Tuple[string,bool]]::New("HouseNumber",             $false)
-        [System.Tuple[string,bool]]::New("HouseNumberSuffix",       $false)
-        [System.Tuple[string,bool]]::New("IsDefault",               $false)
-        [System.Tuple[string,bool]]::New("Latitude",                $true )
-        [System.Tuple[string,bool]]::New("Location",                $false)
-        [System.Tuple[string,bool]]::New("LocationId",              $true )
-        [System.Tuple[string,bool]]::New("Longitude",               $true )
-        [System.Tuple[string,bool]]::New("NumberOfTelephoneNumbers",$false)
-        [System.Tuple[string,bool]]::New("NumberOfVoiceUsers",      $false)
-        [System.Tuple[string,bool]]::New("PartnerId",               $false)
-        [System.Tuple[string,bool]]::New("PostDirectional",         $false)
-        [System.Tuple[string,bool]]::New("PostalCode",              $false)
-        [System.Tuple[string,bool]]::New("PreDirectional",          $false)
-        [System.Tuple[string,bool]]::New("StateOrProvince",         $false)
-        [System.Tuple[string,bool]]::New("StreetName",              $false)
-        [System.Tuple[string,bool]]::New("StreetSuffix",            $false)
-        [System.Tuple[string,bool]]::New("TenantId",                $true )
-        [System.Tuple[string,bool]]::New("ValidationStatus",        $false)
-    )
-
-    Subnet = @(
-        [System.Tuple[string,bool]]::New("Description", $false)
-        [System.Tuple[string,bool]]::New("LocationId",  $true )
-        [System.Tuple[string,bool]]::New("Subnet",      $true )
-    )
-
-    Switch = @(
-        [System.Tuple[string,bool]]::New("ChassisId",   $true )
-        [System.Tuple[string,bool]]::New("Description", $false)
-        [System.Tuple[string,bool]]::New("LocationId",  $true )
-    )
-
-    Port = @(
-        [System.Tuple[string,bool]]::New("PortID",      $true )
-        [System.Tuple[string,bool]]::New("ChassisID",   $true)
-        [System.Tuple[string,bool]]::New("LocationId",  $true)
-        [System.Tuple[string,bool]]::New("Description", $false)
-    )
-
-    WaP = @(
-        [System.Tuple[string,bool]]::New("Bssid",       $true)
-        [System.Tuple[string,bool]]::New("Description", $false)
-        [System.Tuple[string,bool]]::New("LocationId",  $true)
-    )
-}
-
-# Throttle limit for the number of threads to run in parallel. Should be equal to the number of properties in $All_Properties_Exporters*2
-$ThrottleLimit = 12
-
-#---------------------------------------- PRIVATE FUNCTION DEFINITIONS ----------------------------------------
-
-
-$All_Properties_Exporters = @{
-    CivicAddress = {
-        [CmdletBinding()]
-        param($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $CivicAddress = Get-CsOnlineLisCivicAddress 
-        if (-not $CivicAddress -or $CivicAddress.Count -eq 0) {
-            Write-Verbose "No CivicAddress found in Teams Admin Center; skipping CivicAddress export."
-            return
-        }
-
-        & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-    }
-
-    LocationSchema = {
-        [CmdletBinding()]
-        param($Path, $Write_File, $CSV, $XML, $Fast)
-
-        $LocationSchema = Get-CsOnlineLisLocation
-        if (-not $LocationSchema -or $LocationSchema.Count -eq 0) {
-            Write-Verbose "No LocationSchema found in Teams Admin Center; skipping LocationSchema export."
+    if (-not $Unsafe) {
+        
+        # Create a log file with the name of the property and the date
+        try {
+            $LogFile = "$($Property)_ResetLog_$((Get-Date).ToString('ddMM')).txt"
+            New-Item -Path $LogFile -ItemType File | Out-Null
+            
+            # Output full path of the log file if verbose is enabled
+            if ($VerbosePreference -eq 'Continue') {
+                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
+                Write-Verbose "Log file created: $LogFileFullPath"
+            }
+        } catch {
+            Write-Error "Failed to create log file: $_ file might already exists"
             return
         }
         
-        & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-    }
+        foreach($Item in $PropertyToErase){
 
-    Subnet = { 
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
 
-        $Subnet = Get-CsOnlineLisSubnet
-        if (-not $Subnet -or $Subnet.Count -eq 0) {
-            Write-Verbose "No Subnet found in Teams Admin Center; skipping Subnet export."
-            return
+                # Log the item to be removed
+                Add-Content -Path $LogFile -Value ($Item | Out-String)
+
+                # Remove item
+                & $Remove @param
+            }
         }
 
-        & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-    }
+            Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
 
-    Switch = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
+    } else {
+        
+        foreach($Item in $PropertyToErase){
 
-        $Switch = Get-CsOnlineLisSwitch
-        if (-not $Switch -or $Switch.Count -eq 0) {
-            Write-Verbose "No Switch found in Teams Admin Center; skipping Switch export."
-            return
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Remove item
+                & $Remove @param
+            }
         }
 
-        & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+         Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."      
     }
+}
 
-    Port = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
+# ---------------------------------------- New Global Backup ----------------------------------------------------
+$All_Properties_Get_Functions = @{
 
-        $Port = Get-CsOnlineLisPort
-        if (-not $Port -or $Port.Count -eq 0) {
-            Write-Verbose "No Port found in Teams Admin Center; skipping Port export."
-            return
-        }
+    CivicAddress = {Get-CsOnlineLisCivicAddress}
 
-        & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-    }
+    LocationSchema ={Get-CsOnlineLisLocatio}
 
-    WaP = {
-        [CmdletBinding()]
-        param ($Path, $Write_File, $CSV, $XML, $Fast)
+    Subnet = {Get-CsOnlineLisSubnet}
+    
+    Switch = {Get-CsOnlineLisSwitch}
 
-        $WaP = Get-CsOnlineLisWirelessAccessPoint
-        if (-not $WaP -or $WaP.Count -eq 0) {
-            Write-Verbose "No WaP found in Teams Admin Center; skipping WaP export."
-            return
-        }
+    Port = {Get-CsOnlineLisPort}
 
-        & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-    }
+    WaP = {Get-CsOnlineLisWirelessAccessPoint}
+}
+
+$All_Properties_Remove_Functions = @{
+
+    CivicAddress = 
+        [System.Tuple[scriptblock,string]]::New(
+            {param($CivicAddressId)
+                Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId
+            }, 
+            'CivicAddressId')
+
+    LocationSchema =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($LocationId)
+                Remove-CsOnlineLisLocation -LocationId $LocationId
+            },
+            'LocationId')
+
+    Subnet =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($Subnet)
+                Remove-CsOnlineLisSubnet -Subnet $Subnet
+            },
+            'Subnet')
+    
+    Switch =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($ChassisId)
+                Remove-CsOnlineLisSwitch -ChassisId $ChassisId
+            },
+            'ChassisId')
+
+    Port =
+        [System.Tuple[scriptblock,string,string]]::New(
+            { param($ChassisId, $PortId)
+                Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId
+            }, 
+            'ChassisId', 'PortId')
+
+    WaP =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($Bssid)
+                Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid
+            },
+            'Bssid')
+}
+
+
+$All_Properties_Functions = @{
+
+    CivicAddress = 
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisCivicAddress},
+            {param($CivicAddressId) Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId}, 
+            {New-CsOnlineLisCivicAddress})
+
+    LocationSchema =
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisLocatio}, 
+            {param($LocationId) Remove-CsOnlineLisLocation -LocationId $LocationId}, 
+            {New-CsOnlineLisLocatio})
+
+    Subnet =
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisSubnet}, 
+            {param($Subnet) Remove-CsOnlineLisSubnet -Subnet $Subnet},
+            {New-CsOnlineLisSubnet})
+    
+    Switch =
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisSwitch},
+            {param($ChassisId) Remove-CsOnlineLisSwitch -ChassisId $ChassisId},
+            {New-CsOnlineLisSwitch})
+
+    Port =
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisPort}, 
+            { param($ChassisId, $PortId) Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId}, 
+            {New-CsOnlineLisPort})
+
+    WaP =
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisWirelessAccessPoint},
+            {param($Bssid) Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid},
+            {New-CsOnlineLisWirelessAccessPoint})
+}
+
+$All_Properties_Parameters = @{
+
+    CivicAddress = @(
+        [System.Tuple[string,bool,bool]]::New("AdditionalLocationInfo",  $false, $false)
+        [System.Tuple[string,bool,bool]]::New("City",                    $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CityAlias",               $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CivicAddressId",          $true,  $true )
+        [System.Tuple[string,bool,bool]]::New("CompanyName",             $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("CompanyTaxId",            $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Confidence",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CountryOrRegion",         $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("CountyOrDistrict",        $false, $false)
+        [System.Tuple[string,bool,bool]]::New("DefaultLocationId",       $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("Description",             $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Elin",                    $false, $false)
+        [System.Tuple[string,bool,bool]]::New("HouseNumber",             $false, $false)
+        [System.Tuple[string,bool,bool]]::New("HouseNumberSuffix",       $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Latitude",                $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("Longitude",               $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false)
+        [System.Tuple[string,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PartnerId",               $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PostDirectional",         $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PostalCode",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PreDirectional",          $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StateOrProvince",         $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StreetName",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StreetSuffix",            $false, $false)
+        [System.Tuple[string,bool,bool]]::New("TenantId",                $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("ValidationStatus",        $false, $false)
+    )
+
+    LocationSchema = @(
+        [System.Tuple[string,bool,bool]]::New("City",                    $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CityAlias",               $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CivicAddressId",          $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("CompanyName",             $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("CompanyTaxId",            $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Confidence",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("CountryOrRegion",         $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("CountyOrDistrict",        $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Description",             $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Elin",                    $false, $false)
+        [System.Tuple[string,bool,bool]]::New("HouseNumber",             $false, $false)
+        [System.Tuple[string,bool,bool]]::New("HouseNumberSuffix",       $false, $false)
+        [System.Tuple[string,bool,bool]]::New("IsDefault",               $false, $false)
+        [System.Tuple[string,bool,bool]]::New("Latitude",                $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("Location",                $false, $false)
+        [System.Tuple[string,bool,bool]]::New("LocationId",              $true,  $true )
+        [System.Tuple[string,bool,bool]]::New("Longitude",               $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false)
+        [System.Tuple[string,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PartnerId",               $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PostDirectional",         $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PostalCode",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("PreDirectional",          $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StateOrProvince",         $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StreetName",              $false, $false)
+        [System.Tuple[string,bool,bool]]::New("StreetSuffix",            $false, $false)
+        [System.Tuple[string,bool,bool]]::New("TenantId",                $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("ValidationStatus",        $false, $false)
+    )
+
+    Subnet = @(
+        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
+        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("Subnet",      $true,  $true )
+    )
+
+    Switch = @(
+        [System.Tuple[string,bool,bool]]::New("ChassisId",   $true,  $true)
+        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
+        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+    )
+
+    Port = @(
+        [System.Tuple[string,bool,bool]]::New("PortID",      $true,  $true )
+        [System.Tuple[string,bool,bool]]::New("ChassisID",   $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
+    )
+
+    WaP = @(
+        [System.Tuple[string,bool,bool]]::New("Bssid",       $true,  $true )
+        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
+        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+    )
 }
