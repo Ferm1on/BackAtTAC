@@ -38,7 +38,8 @@ Get-Module
     PowerShellVersion    = '5.1'
     FunctionsToExport    = @(
         'BackUp-TACData',
-        'Read-TACData'
+        'Read-TACData',
+        'Reset-TACProperty'
     )
     CmdletsToExport      = @()
     VariablesToExport    = @()

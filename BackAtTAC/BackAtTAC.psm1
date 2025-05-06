@@ -379,7 +379,7 @@ function BackUp-TACData {
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     # Error checking for $FolderPath: Checking if path exists
     if (-not (Test-Path -Path $Path)) {
-        Write-Error "Invalid FolderPath: $Path"
+        Write-Error "Invalid Path: $Path"
         return
     }
 
@@ -618,8 +618,104 @@ function Read-TACData {
     return $Backup_Files
 }
 
+function Reset-TACProperty {
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact        = 'High'
+    )]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Unsafe
+    )
+
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+
+    # Error checking for $Properties: Checking all user submited properties are supported
+    if (-not $All_Properties_Remove_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud erasure of '$Property' property."
+        return
+    }
+
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
+
+    #--------------------------------------------- VARIABLES START --------------------------------------------
+
+    # Build remove call function and parameters
+    $tuple = $All_Properties_Remove_Functions[$Property]
+    $Remove = $tuple.Item1
+    $Arguments = @($tuple.Item2)
+    if ($tuple.PSObject.Properties['Item3']) {
+        $Arguments += $tuple.Item3
+    }
+
+    # Download property from TAC and exit if empty.
+    $PropertyToErase = $All_Properties_Get_Functions[$Property].Invoke()
+    if (-not $PropertyToErase) {
+        Write-Verbose "No values found for property '$Property', skiping deletion."
+        return
+      }
+    
+    #--------------------------------------------- VARIABLES END ----------------------------------------------
+
+    if (-not $Unsafe) {
+        
+        # Create a log file with the name of the property and the date
+        try {
+            $LogFile = "$($Property)_ResetLog_$((Get-Date).ToString('ddMM')).txt"
+            New-Item -Path $LogFile -ItemType File | Out-Null
+            
+            # Output full path of the log file if verbose is enabled
+            if ($VerbosePreference -eq 'Continue') {
+                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
+                Write-Verbose "Log file created: $LogFileFullPath"
+            }
+        } catch {
+            Write-Error "Failed to create log file: $_ file might already exists"
+            return
+        }
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Log the item to be removed
+                Add-Content -Path $LogFile -Value ($Item | Out-String)
+
+                # Remove item
+                & $Remove @param
+            }
+        }
+
+            Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+
+    } else {
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Remove item
+                & $Remove @param
+            }
+        }
+
+         Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."      
+    }
+}
+
 # Export public functions
-Export-ModuleMember -Function BackUp-TACData, Read-TACData
+Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

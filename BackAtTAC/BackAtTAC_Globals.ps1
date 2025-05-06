@@ -145,6 +145,69 @@ $All_Properties_Exporters = @{
     }
 }
 
+# Function Array for downloading properties from Teams Admin Center
+$All_Properties_Get_Functions = @{
+
+    CivicAddress = {Get-CsOnlineLisCivicAddress}
+
+    LocationSchema ={Get-CsOnlineLisLocatio}
+
+    Subnet = {Get-CsOnlineLisSubnet}
+    
+    Switch = {Get-CsOnlineLisSwitch}
+
+    Port = {Get-CsOnlineLisPort}
+
+    WaP = {Get-CsOnlineLisWirelessAccessPoint}
+}
+
+# Helper function to remove properties from Teams Admin Center. 
+# item1 is the function, item2 are the required parameters to call the function.
+$All_Properties_Remove_Functions = @{
+
+    CivicAddress = 
+        [System.Tuple[scriptblock,string]]::New(
+            {param($CivicAddressId)
+                Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId
+            }, 
+            'CivicAddressId')
+
+    LocationSchema =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($LocationId)
+                Remove-CsOnlineLisLocatio -LocationId $LocationId
+            },
+            'LocationId')
+
+    Subnet =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($Subnet)
+                Remove-CsOnlineLisSubnet -Subnet $Subnet
+            },
+            'Subnet')
+    
+    Switch =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($ChassisId)
+                Remove-CsOnlineLisSwitch -ChassisId $ChassisId
+            },
+            'ChassisId')
+
+    Port =
+        [System.Tuple[scriptblock,string,string]]::New(
+            { param($ChassisId, $PortId)
+                Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId
+            }, 
+            'ChassisId', 'PortId')
+
+    WaP =
+        [System.Tuple[scriptblock,string]]::New(
+            {param($Bssid)
+                Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid
+            },
+            'Bssid')
+}
+
 # Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
 # item2 denotes if the property is required or not. If true, the property is required.
 # item3 denotes if the property is a key or not. If true, the property is a key.
