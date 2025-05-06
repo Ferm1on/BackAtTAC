@@ -132,7 +132,7 @@ function Read-File {
     #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
     #Write-Host "Verbose Setting: $callerVerbose"
 
-    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+    #------------------------------------------ BASIC ERROR CHECKING START ------------------------------------------
 
     # Check if the path is valid
     if (-not (Test-Path -Path $Path)) {
@@ -149,7 +149,7 @@ function Read-File {
             return
         }
     }
-    #------------------------------------------- ERROR CHECKING END -------------------------------------------
+    #------------------------------------------- BASIC ERROR CHECKING END -------------------------------------------
 
     if ($Path -match '\.(csv)$') {
         # Importing CSV file
@@ -161,6 +161,7 @@ function Read-File {
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
                 $colName    = $tuple.Item1
                 $isRequired = $tuple.Item2
+                $isKey      = $tuple.Item3
         
                 # Check Column existence
                 if (-not ($CsvObject[0].PSObject.Properties.Name -contains $colName)) {
@@ -177,6 +178,7 @@ function Read-File {
         
                 # Column is present, if it's required, ensure no row is empty/null
                 if ($isRequired) {
+
                     # build a list of zero-based indices where the value is null or whitespace <-- NEEDS TESTING
                     $badIndices = 0..($CsvObject.Count - 1) |
                         Where-Object {[string]::IsNullOrWhiteSpace($CsvObject[$_].$colName)}
@@ -187,8 +189,27 @@ function Read-File {
                         Write-Error "Required column '$colName' on '$Path' has empty values at CSV line(s): $($badLines -join ', ')"
                         return
                     }
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
+                    
+                    # Check for duplicate values in the column
+                    if($isKey){
+                        $duplicateValues = $CsvObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
+                    
+                        if ($duplicateValues) {
+                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
+                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
+                            return
+                        }
+                    }
+
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found on keys."
                 }
+            }
+
+            # Check for non-standard attribute in loaded file
+            $nonStandardAttributes = $CsvObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
+            if ($nonStandardAttributes) {
+                Write-Error "Non-standard attributes found in CSV file: $($nonStandardAttributes -join ', ')"
+                return
             }
 
             Write-Verbose "CSV file: '$Path' passed attribute integrity check."
@@ -208,6 +229,7 @@ function Read-File {
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
                 $colName    = $tuple.Item1
                 $isRequired = $tuple.Item2
+                $isKey      = $tuple.Item3
 
                 # existence against first node
                 if (-not ($XmlObject[0].PSObject.Properties.Name -contains $colName)) {
@@ -232,9 +254,29 @@ function Read-File {
                         Write-Error "Required property '$colName' is empty in XML element indices: $($badLines -join ', ')"
                         return
                     }
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
+
+                    # Check for duplicate values in the required column
+                    if($isKey){
+                        # Check for duplicate values in the column
+                        $duplicateValues = $XmlObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
+                    
+                        if ($duplicateValues) {
+                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
+                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
+                            return
+                        }    
+                    }
+
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found."
                 }
             }
+
+            # Check for non-standard attribute in loaded file
+            $nonStandardAttributes = $XmlObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
+            if ($nonStandardAttributes) {
+                Write-Error "Non-standard attributes found in XML file: $($nonStandardAttributes -join ', ')"
+                return
+            }            
             
             Write-Verbose "XML file: $Path passed attribute integrity check."
             Write-Verbose "Imported XML: $Path"
