@@ -156,6 +156,7 @@ function Read-File {
         try {
             # Load the CSV
             $CsvObject = Import-Csv -Path $Path
+            $AllKeys = @()
         
             # Check existence and non-null for each column in CSV schema
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
@@ -190,19 +191,39 @@ function Read-File {
                         return
                     }
                     
-                    # Check for duplicate values in the column
-                    if($isKey){
-                        $duplicateValues = $CsvObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
-                    
-                        if ($duplicateValues) {
-                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
-                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
-                            return
-                        }
-                    }
-
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found on keys."
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
                 }
+
+                # Collect all key values
+                if($IsKey){
+                    $AllKeys += $ColName
+                }
+            }
+
+            # Check for duplicate key values
+            if ($AllKeys) {
+                # Group rows by the combination of all key columns
+                $duplicateGroups = $CsvObject |
+                    Group-Object -Property $AllKeys |
+                    Where-Object { $_.Count -gt 1 }
+            
+                if ($duplicateGroups) {
+                    foreach ($grp in $duplicateGroups) {
+                        # compute human-readable line numbers (+2 for header + zero-index)
+                        $lineNumbers = $grp.Group |
+                            ForEach-Object { [array]::IndexOf($CsvObject, $_) + 2 }
+            
+                        # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                        $combo = (
+                            $AllKeys |
+                            ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                        ) -join ', '
+            
+                        Write-Error "Duplicate key combination ($combo) found at CSV line(s): $($lineNumbers -join ', ')"
+                    }
+                    return
+                }
+                Write-Verbose "Duplicate key check passed for '$Path'"
             }
 
             # Check for non-standard attribute in loaded file
@@ -224,6 +245,7 @@ function Read-File {
     } elseif ($Path -match '\.(xml)$'){
         try {
             $XmlObject = Import-Clixml -Path $Path
+            $AllKeys = @()
 
             # Check existence and non-null for each column in XML schema
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
@@ -254,21 +276,38 @@ function Read-File {
                         Write-Error "Required property '$colName' is empty in XML element indices: $($badLines -join ', ')"
                         return
                     }
-
-                    # Check for duplicate values in the required column
-                    if($isKey){
-                        # Check for duplicate values in the column
-                        $duplicateValues = $XmlObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
-                    
-                        if ($duplicateValues) {
-                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
-                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
-                            return
-                        }    
-                    }
-
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found."
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated."
                 }
+
+                # Collect all key values
+                if($IsKey){
+                    $AllKeys += $ColName
+                }
+            }
+
+            if ($AllKeys) {
+                # Group rows by the combination of all key columns
+                $duplicateGroups = $XmlObject |
+                    Group-Object -Property $AllKeys |
+                    Where-Object { $_.Count -gt 1 }
+            
+                if ($duplicateGroups) {
+                    foreach ($grp in $duplicateGroups) {
+                        # compute human-readable line numbers (+2 for header + zero-index)
+                        $lineNumbers = $grp.Group |
+                            ForEach-Object { [array]::IndexOf($XmlObject, $_) }
+            
+                        # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                        $combo = (
+                            $AllKeys |
+                            ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                        ) -join ', '
+            
+                        Write-Error "Duplicate key combination ($combo) found at Xml RefId: $($lineNumbers -join ', ')"
+                    }
+                    return
+                }
+                Write-Verbose "Duplicate key check passed for '$Path'"
             }
 
             # Check for non-standard attribute in loaded file
@@ -294,6 +333,103 @@ function Read-File {
 }
 $Read_File = [ScriptBlock]::Create((Get-Command Read-File -CommandType Function).Definition)
 
+# Function that errases all objects for a particular Property in the Teams Admin Center.
+function Reset-Property {
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact        = 'High'
+    )]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Unsafe
+    )
+
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+
+    # Error checking for $Properties: Checking all user submited properties are supported
+    if (-not $All_Properties_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud erasure of '$Property' property."
+        return
+    }
+
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
+
+    #--------------------------------------------- VARIABLES START --------------------------------------------
+
+    # Build remove call function and parameters
+    $Remove = $All_Properties_Functions[$Property].Item2
+    $Arguments = @()
+    foreach ($tuple in $All_Properties_Parameters[$Property]) {
+        if ($tuple.Item3) {
+            $Arguments += $tuple.Item1
+        }
+    }
+
+    # Download property from TAC and exit if empty.
+    $PropertyToErase = $All_Properties_Functions[$Property].item1.Invoke()
+    if (-not $PropertyToErase) {
+        Write-Verbose "No values found for property '$Property', skiping deletion."
+        return
+      }
+    
+    #--------------------------------------------- VARIABLES END ----------------------------------------------
+
+    if (-not $Unsafe) {
+        
+        # Create a log file with the name of the property and the date
+        try {
+            $LogFile = "$($Property)_ResetLog_$((Get-Date).ToString('ddMM')).txt"
+            New-Item -Path $LogFile -ItemType File | Out-Null
+            
+            # Output full path of the log file if verbose is enabled
+            if ($VerbosePreference -eq 'Continue') {
+                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
+                Write-Verbose "Log file created: $LogFileFullPath"
+            }
+        } catch {
+            Write-Error "Failed to create log file: $_ file might already exists"
+            return
+        }
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Log the item to be removed
+                Add-Content -Path $LogFile -Value ($Item | Out-String)
+
+                # Remove item
+                & $Remove @param
+            }
+        }
+
+            Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+
+    } else {
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Remove item
+                & $Remove @param
+            }
+        }
+
+         Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."      
+    }
+}
 
 #---------------------------------------- PUBLIC FUNCTION DEFINITIONS -----------------------------------------
 
@@ -476,7 +612,7 @@ function Read-TACData {
         The full file path to the backup file to import.
     
     .PARAMETER Properties
-        The type of property to import (e.g., CivicAddress, LocationSchemachema, Switch, Port, WaP).
+        The type of property to import (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
     
     .PARAMETER Checksum
         The SHA256 checksum of the backup file to validate its integrity.
@@ -618,11 +754,47 @@ function Read-TACData {
     return $Backup_Files
 }
 
+# Function wrapper for future expension and use. eventually could use -Fast switch, or reset multiple properties at once
 function Reset-TACProperty {
-    [CmdletBinding(
-        SupportsShouldProcess = $true,
-        ConfirmImpact        = 'High'
-    )]
+        <#
+    .SYNOPSIS
+        Erases all objects for a particular Property in Teams Admin Center.
+
+    .DESCRIPTION
+        This function erases all objects for a particular Property in Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        It uses the MicrosoftTeams PowerShell Module to perform the operation.
+        By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
+        This is a high impact function, therefore comfirmation is on by default. to turn of confirmation do -Confirm:$false.
+        To get this menu use Get-Help Reset-TACProperty -Full
+    
+    .PARAMETER Property
+        The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
+
+    .PARAMETER Unsafe
+        If this switch is used, the function will not log to file while deleting the property objects.
+        By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
+        This is done to keep track of deleted objects in case of a mistake or power loss.
+    
+    .INPUTS
+        System.String[] (Property)
+        System.Switch[] (Unsafe)
+
+    .EXAMPLE
+        Reset-TACProperty -Property "Port" -Unsafe
+        Erases all Port objects in Teams Admin Center without logging to file.
+
+    .EXAMPLE
+        Reset-TACProperty -Property "Port" -Unsafe -Confirm:$false
+        Erases all Port objects in Teams Admin Center without logging to file and without confirmation.
+
+    .NOTES
+        This script is provided as-is and is not supported by me. Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+
+    [CmdletBinding(ConfirmImpact = 'High')]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Property,
@@ -630,88 +802,7 @@ function Reset-TACProperty {
         [Parameter(Mandatory = $false)]
         [switch]$Unsafe
     )
-
-    #------------------------------------------ ERROR CHECKING START ------------------------------------------
-
-    # Error checking for $Properties: Checking all user submited properties are supported
-    if (-not $All_Properties_Remove_Functions.ContainsKey($Property)) {
-        Write-Error "This module does not support the cloud erasure of '$Property' property."
-        return
-    }
-
-    #------------------------------------------- ERROR CHECKING END -------------------------------------------
-
-    #--------------------------------------------- VARIABLES START --------------------------------------------
-
-    # Build remove call function and parameters
-    $tuple = $All_Properties_Remove_Functions[$Property]
-    $Remove = $tuple.Item1
-    $Arguments = @($tuple.Item2)
-    if ($tuple.PSObject.Properties['Item3']) {
-        $Arguments += $tuple.Item3
-    }
-
-    # Download property from TAC and exit if empty.
-    $PropertyToErase = $All_Properties_Get_Functions[$Property].Invoke()
-    if (-not $PropertyToErase) {
-        Write-Verbose "No values found for property '$Property', skiping deletion."
-        return
-      }
-    
-    #--------------------------------------------- VARIABLES END ----------------------------------------------
-
-    if (-not $Unsafe) {
-        
-        # Create a log file with the name of the property and the date
-        try {
-            $LogFile = "$($Property)_ResetLog_$((Get-Date).ToString('ddMM')).txt"
-            New-Item -Path $LogFile -ItemType File | Out-Null
-            
-            # Output full path of the log file if verbose is enabled
-            if ($VerbosePreference -eq 'Continue') {
-                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
-                Write-Verbose "Log file created: $LogFileFullPath"
-            }
-        } catch {
-            Write-Error "Failed to create log file: $_ file might already exists"
-            return
-        }
-        
-        foreach($Item in $PropertyToErase){
-
-            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
-                
-                # Build parameters
-                $param = @{}
-                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
-
-                # Log the item to be removed
-                Add-Content -Path $LogFile -Value ($Item | Out-String)
-
-                # Remove item
-                & $Remove @param
-            }
-        }
-
-            Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
-
-    } else {
-        
-        foreach($Item in $PropertyToErase){
-
-            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
-                
-                # Build parameters
-                $param = @{}
-                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
-
-                # Remove item
-                & $Remove @param
-            }
-        }
-
-         Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."      
-    }
+    Reset-Property -Property $Property -Unsafe:$Unsafe
 }
 
 # Export public functions
