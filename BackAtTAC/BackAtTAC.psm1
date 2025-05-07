@@ -229,8 +229,7 @@ function Read-File {
             # Check for non-standard attribute in loaded file
             $nonStandardAttributes = $CsvObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
             if ($nonStandardAttributes) {
-                Write-Error "Non-standard attributes found in CSV file: $($nonStandardAttributes -join ', ')"
-                return
+                Write-Verbose "Non-standard attributes found in CSV file: $($nonStandardAttributes -join ', ')"
             }
 
             Write-Verbose "CSV file: '$Path' passed attribute integrity check."
@@ -313,8 +312,7 @@ function Read-File {
             # Check for non-standard attribute in loaded file
             $nonStandardAttributes = $XmlObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
             if ($nonStandardAttributes) {
-                Write-Error "Non-standard attributes found in XML file: $($nonStandardAttributes -join ', ')"
-                return
+                Write-Verbose "Non-standard attributes found in XML file: $($nonStandardAttributes -join ', ')"
             }            
             
             Write-Verbose "XML file: $Path passed attribute integrity check."
