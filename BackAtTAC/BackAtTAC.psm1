@@ -368,6 +368,7 @@ function Reset-Property {
 
     # Download property from TAC and exit if empty.
     $PropertyToErase = $All_Properties_Functions[$Property].item1.Invoke()
+    $DeletedImtes = @()
     if (-not $PropertyToErase) {
         Write-Verbose "No values found for property '$Property', skiping deletion."
         return
@@ -394,7 +395,7 @@ function Reset-Property {
         
         foreach($Item in $PropertyToErase){
 
-            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+            if ($PSCmdlet.ShouldProcess("$Property Property on Teams Admin Center", "Delete $($Arguments[0]) $($Item.$($Arguments[0]))")) {
                 
                 # Build parameters
                 $param = @{}
@@ -405,16 +406,20 @@ function Reset-Property {
 
                 # Remove item
                 & $Remove @param
+
+                # add to deleted array
+                $DeletedImtes += $Item
             }
         }
 
             Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+            return $DeletedImtes
 
     } else {
         
         foreach($Item in $PropertyToErase){
 
-            if ($PSCmdlet.ShouldProcess("$Property Property", "Delete all $Property values from Teams Admin Center")) {
+            if ($PSCmdlet.ShouldProcess("$Property Property on Teams Admin Center", "Delete $($Arguments[0]) $($Item.$($Arguments[0]))")) {
                 
                 # Build parameters
                 $param = @{}
@@ -422,10 +427,14 @@ function Reset-Property {
 
                 # Remove item
                 & $Remove @param
+
+                # add to deleted array
+                $DeletedImtes += $Item
             }
         }
 
-         Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."      
+        Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+        return $DeletedImtes  
     }
 }
 
@@ -776,6 +785,9 @@ function Reset-TACProperty {
     .INPUTS
         System.String[] (Property)
         System.Switch[] (Unsafe)
+    
+    .OUTPUTS
+        System.Object[] (Deleted objects)
 
     .EXAMPLE
         Reset-TACProperty -Property "Port" -Unsafe
@@ -792,7 +804,10 @@ function Reset-TACProperty {
         "Dream of electric sheep."
     #>
 
-    [CmdletBinding(ConfirmImpact = 'High')]
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact = 'High'
+        )]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Property,
@@ -800,7 +815,15 @@ function Reset-TACProperty {
         [Parameter(Mandatory = $false)]
         [switch]$Unsafe
     )
-    Reset-Property -Property $Property -Unsafe:$Unsafe
+
+    if ($PSBoundParameters.ContainsKey('Confirm') -and -not $PSBoundParameters['Confirm']) {
+        # user explicitly did: -Confirm:$false
+        return (Reset-Property -Property $Property -Unsafe:$Unsafe -Confirm:$false)
+    }
+    else {
+        # otherwise, call with default confirmation behavior
+        return (Reset-Property -Property $Property -Unsafe:$Unsafe)
+    }
 }
 
 # Export public functions

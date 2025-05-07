@@ -170,7 +170,10 @@ $MyValue =  Read-TACData -Path .\Subnet_MissingREntry.csv
 #---------------------------------------- Function under construction ----------------------------------------
 
 function Reset-TACProperty {
-    [CmdletBinding(ConfirmImpact = 'High')]
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact = 'High'
+        )]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Property,
@@ -178,7 +181,15 @@ function Reset-TACProperty {
         [Parameter(Mandatory = $false)]
         [switch]$Unsafe
     )
-    Reset-Property -Property $Property -Unsafe:$Unsafe
+
+    if ($PSBoundParameters.ContainsKey('Confirm') -and -not $PSBoundParameters['Confirm']) {
+        # user explicitly did: -Confirm:$false
+        Reset-Property -Property $Property -Unsafe:$Unsafe -Confirm:$false
+    }
+    else {
+        # otherwise, call with default confirmation behavior
+        Reset-Property -Property $Property -Unsafe:$Unsafe
+    }
 }
 
 
