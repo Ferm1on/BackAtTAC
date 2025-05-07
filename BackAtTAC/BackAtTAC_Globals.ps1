@@ -145,72 +145,53 @@ $All_Properties_Exporters = @{
     }
 }
 
-# Function Array for downloading properties from Teams Admin Center
-$All_Properties_Get_Functions = @{
-
-    CivicAddress = {Get-CsOnlineLisCivicAddress}
-
-    LocationSchema ={Get-CsOnlineLisLocatio}
-
-    Subnet = {Get-CsOnlineLisSubnet}
-    
-    Switch = {Get-CsOnlineLisSwitch}
-
-    Port = {Get-CsOnlineLisPort}
-
-    WaP = {Get-CsOnlineLisWirelessAccessPoint}
-}
-
-# Helper function to remove properties from Teams Admin Center. 
-# item1 is the function, item2 are the required parameters to call the function.
-$All_Properties_Remove_Functions = @{
+# Helper functons for deletion and upload of property data.
+# item1 denotes Get function
+# Item2 denotes Remove function
+# Item3 denotes New funciton
+$All_Properties_Functions = @{
 
     CivicAddress = 
-        [System.Tuple[scriptblock,string]]::New(
-            {param($CivicAddressId)
-                Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId
-            }, 
-            'CivicAddressId')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisCivicAddress},
+            {param($CivicAddressId) Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId}, 
+            {New-CsOnlineLisCivicAddress})
 
     LocationSchema =
-        [System.Tuple[scriptblock,string]]::New(
-            {param($LocationId)
-                Remove-CsOnlineLisLocation -LocationId $LocationId
-            },
-            'LocationId')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisLocatio}, 
+            {param($LocationId) Remove-CsOnlineLisLocation -LocationId $LocationId}, 
+            {New-CsOnlineLisLocatio})
 
     Subnet =
-        [System.Tuple[scriptblock,string]]::New(
-            {param($Subnet)
-                Remove-CsOnlineLisSubnet -Subnet $Subnet
-            },
-            'Subnet')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisSubnet}, 
+            {param($Subnet) Remove-CsOnlineLisSubnet -Subnet $Subnet},
+            {New-CsOnlineLisSubnet})
     
     Switch =
-        [System.Tuple[scriptblock,string]]::New(
-            {param($ChassisId)
-                Remove-CsOnlineLisSwitch -ChassisId $ChassisId
-            },
-            'ChassisId')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisSwitch},
+            {param($ChassisId) Remove-CsOnlineLisSwitch -ChassisId $ChassisId},
+            {New-CsOnlineLisSwitch})
 
     Port =
-        [System.Tuple[scriptblock,string,string]]::New(
-            { param($ChassisId, $PortId)
-                Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId
-            }, 
-            'ChassisId', 'PortId')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisPort}, 
+            { param($ChassisId, $PortId) Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId}, 
+            {New-CsOnlineLisPort})
 
     WaP =
-        [System.Tuple[scriptblock,string]]::New(
-            {param($Bssid)
-                Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid
-            },
-            'Bssid')
+        [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
+            {Get-CsOnlineLisWirelessAccessPoint},
+            {param($Bssid) Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid},
+            {New-CsOnlineLisWirelessAccessPoint})
 }
 
 # Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
-# item2 denotes if the property is required or not. If true, the property is required.
-# item3 denotes if the property is a key or not. If true, the property is a key.
+# Item1 denotes the Property Attribute name.
+# item2 denotes if the Attribute is required or not. If true, the Attribute is required for upload.
+# item3 denotes if the attribute is a key or not. If true, the property is a key.
 $All_Properties_Parameters = @{
 
     CivicAddress = @(
@@ -288,7 +269,7 @@ $All_Properties_Parameters = @{
 
     Port = @(
         [System.Tuple[string,bool,bool]]::New("PortID",      $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("ChassisID",   $true,  $false)
+        [System.Tuple[string,bool,bool]]::New("ChassisID",   $true,  $true )
         [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
         [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
     )
