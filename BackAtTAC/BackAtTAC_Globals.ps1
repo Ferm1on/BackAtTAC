@@ -25,7 +25,10 @@ $All_Properties_Exporters = @{
         } else {
             & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
-        # & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 
     LocationSchema = {
@@ -48,7 +51,10 @@ $All_Properties_Exporters = @{
         } else {
             & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
-        # & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 
     Subnet = { 
@@ -71,7 +77,10 @@ $All_Properties_Exporters = @{
         } else {
             & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
-        # & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 
     Switch = {
@@ -94,7 +103,10 @@ $All_Properties_Exporters = @{
         } else {
             & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
-        # & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 
     Port = {
@@ -118,8 +130,9 @@ $All_Properties_Exporters = @{
             & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
         
-        
-        # & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 
     WaP = {
@@ -142,6 +155,9 @@ $All_Properties_Exporters = @{
             & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
         }
         
+        if ($FastVerbose) {
+            $VerbosePreference = 'SilentContinue'
+        }
     }
 }
 
