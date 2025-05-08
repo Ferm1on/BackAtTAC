@@ -31,7 +31,7 @@ Get-Module
 @{
     RootModule           = 'BackAtTAC.psm1'
     ScriptsToProcess     = @('BackAtTAC_Globals')
-    ModuleVersion        = '4.2'
+    ModuleVersion        = '4.3'
     GUID                 = '0b3bc9ef-fc8a-4fbd-a0f2-cc8fd3ec7a92'
     Author               = 'Ferm1on'
     Description          = 'Teams Admin Center Backup Module'
@@ -39,7 +39,8 @@ Get-Module
     FunctionsToExport    = @(
         'BackUp-TACData',
         'Read-TACData',
-        'Reset-TACProperty'
+        'Reset-TACProperty',
+        'Publish-TACProperty'
     )
     CmdletsToExport      = @()
     VariablesToExport    = @()

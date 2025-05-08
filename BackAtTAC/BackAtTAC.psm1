@@ -438,6 +438,137 @@ function Reset-Property {
     }
 }
 
+function Publish-TACProperty {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Object]$Values,
+        [Parameter(Mandatory = $true)]
+        [string]$Property
+    )
+
+    #------------------------------------------ BASIC ERROR CHECKING START ------------------------------------------ 
+    # 1. Verify the property is supported for upload
+    if (-not $All_Properties_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud upload of '$Property' property."
+        return
+    }
+    # 2. If no values provided, skip processing
+    if (-not $Values -or $Values.Count -eq 0) {
+        Write-Verbose "No values provided for property '$Property'; skipping upload."
+        return
+    }
+    #------------------------------------------ BASIC ERROR CHECKING END ------------------------------------------ 
+
+    #------------------------------------------------ VARIABLES START ---------------------------------------------
+    
+    # Build function call parameters and get upload function
+    $Upload = $All_Properties_Functions[$Property].Item3
+    $Arguments = @()
+    # Create Item array to track uploaded items.
+    $UploadedItems = @()
+    # Create array to track keys
+    $AllKeys = @()
+    
+    #------------------------------------------------ VARIABLES END -----------------------------------------------
+
+    #------------------------------------------ ADVANCE ERROR CHECKING START --------------------------------------
+
+    foreach ($tuple in $All_Properties_Parameters[$Property]) {
+        $colName    = $tuple.Item1
+        $isRequired = $tuple.Item2
+        $isKey      = $tuple.Item3
+        $isArgument   = $tuple.Item4
+
+        # Check Column existence
+        if (-not ($Values[0].PSObject.Properties.Name -contains $colName)) {
+            if ($isRequired) {
+                Write-Error "'$colName' column is required, cannot upload."
+                return
+            }
+            else {
+                Write-Verbose "'$colName' does not exist"
+                continue
+            }
+        }
+        
+        # Column is present, if it's required, ensure no row is empty/null
+        if ($isRequired) {
+
+            # build a list of zero-based indices where the value is null or whitespace <-- NEEDS TESTING
+            $badIndices = 0..($Values.Count - 1) |
+                Where-Object {[string]::IsNullOrWhiteSpace($Values[$_].$colName)}
+
+            if ($badIndices) {
+                # adjust to human-friendly line numbers (+2 because header is line 1) <-- NEEDS TESTING
+                $badLines = $badIndices | ForEach-Object { $_ + 1 }
+                Write-Error "Required column '$colName' has empty values at index: $($badLines -join ', ')"
+                return
+            }
+            
+            Write-Verbose "Required Column '$colName' exists and it's fully populated"
+        }
+
+        # Collect all key values
+        if($isKey){
+            $AllKeys += $colName
+        }
+
+        # Build Arguments array
+        if($isArgument){
+            $Arguments += $colName
+        }
+    }
+
+    # Check keys
+    if ($AllKeys) {
+        # Group rows by the combination of all key columns
+        $duplicateGroups = $Values |
+            Group-Object -Property $AllKeys |
+            Where-Object { $_.Count -gt 1 }
+    
+        if ($duplicateGroups) {
+            foreach ($grp in $duplicateGroups) {
+                # compute human-readable line numbers (+2 for header + zero-index)
+                $lineNumbers = $grp.Group |
+                    ForEach-Object { [array]::IndexOf($Values, $_) }
+    
+                # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                $combo = (
+                    $AllKeys |
+                    ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                ) -join ', '
+    
+                Write-Error "Duplicate key combination ($combo) found at index: $($lineNumbers -join ', ')"
+            }
+            return
+        }
+        Write-Verbose "Duplicate key check passed for '$Property' property."
+    }
+
+    #------------------------------------------ ADVANCE ERROR CHECKING START -------------------------------------- 
+
+    # upload each value to Teams Admin Center
+    foreach($item in $Values){
+
+        if ($PSCmdlet.ShouldProcess("$Property property on Teams Admin Center", "Upload $($Arguments[0]) $($item.$($Arguments[0]))")) {
+            
+            # Build parameters
+            $param = @{}
+            foreach ($name in $Arguments) {$param[$name] = $item.$name}
+
+            # Upload item to TAC
+            & $Upload @param
+
+            # add to Uploaded array
+            $UploadedItems += $item
+        }
+    }
+
+    Write-Verbose "Property $Property has been uploaded to Teams Admin Center. All values have been added."
+    return $UploadedItems
+}
+
 #---------------------------------------- PUBLIC FUNCTION DEFINITIONS -----------------------------------------
 
 # Backs up Teams Admin Center data.
@@ -827,7 +958,7 @@ function Reset-TACProperty {
 }
 
 # Export public functions
-Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty
+Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty, Publish-TACProperty
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

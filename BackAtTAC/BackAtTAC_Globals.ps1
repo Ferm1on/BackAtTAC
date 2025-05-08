@@ -150,134 +150,135 @@ $All_Properties_Exporters = @{
 # Item2 denotes Remove function
 # Item3 denotes New funciton
 $All_Properties_Functions = @{
-
-    CivicAddress = 
+    CivicAddress =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
             {Get-CsOnlineLisCivicAddress},
-            {param($CivicAddressId) Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId}, 
-            {New-CsOnlineLisCivicAddress})
-
+            {param($CivicAddressId) Remove-CsOnlineLisCivicAddress -CivicAddressId $CivicAddressId},
+            {param($City,$CityAlias,$CompanyName,$CompanyTaxId,$CountryOrRegion,$Description,$Elin,$HouseNumber,$HouseNumberSuffix,$Latitude,$Longitude,$PostDirectional,$PostalCode,$PreDirectional,$StateOrProvince,$StreetName,$StreetSuffix) New-CsOnlineLisCivicAddress -City $City -CityAlias $CityAlias -CompanyName $CompanyName -CompanyTaxId $CompanyTaxId -CountryOrRegion $CountryOrRegion -Description $Description -Elin $Elin -HouseNumber $HouseNumber -HouseNumberSuffix $HouseNumberSuffix -Latitude $Latitude -Longitude $Longitude -PostDirectional $PostDirectional -PostalCode $PostalCode -PreDirectional $PreDirectional -StateOrProvince $StateOrProvince -StreetName $StreetName -StreetSuffix $StreetSuffix}
+        )
     LocationSchema =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
-            {Get-CsOnlineLisLocatio}, 
-            {param($LocationId) Remove-CsOnlineLisLocation -LocationId $LocationId}, 
-            {New-CsOnlineLisLocatio})
-
+            {Get-CsOnlineLisLocation},
+            {param($LocationId) Remove-CsOnlineLisLocation -LocationId $LocationId},
+            {param($CivicAddressId,$Elin,$Location) New-CsOnlineLisLocation -CivicAddressId $CivicAddressId -Elin $Elin -Location $Location}
+        )
     Subnet =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
-            {Get-CsOnlineLisSubnet}, 
+            {Get-CsOnlineLisSubnet},
             {param($Subnet) Remove-CsOnlineLisSubnet -Subnet $Subnet},
-            {New-CsOnlineLisSubnet})
-    
+            {param($Description,$LocationId,$Subnet) Set-CsOnlineLisSubnet -Description $Description -LocationId $LocationId -Subnet $Subnet}
+        )
     Switch =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
             {Get-CsOnlineLisSwitch},
             {param($ChassisId) Remove-CsOnlineLisSwitch -ChassisId $ChassisId},
-            {New-CsOnlineLisSwitch})
-
+            {param($ChassisId,$Description,$LocationId) Setup-CsOnlineLisSwitch -ChassisId $ChassisId -Description $Description -LocationId $LocationId}
+        )
     Port =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
-            {Get-CsOnlineLisPort}, 
-            { param($ChassisId, $PortId) Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId}, 
-            {New-CsOnlineLisPort})
-
+            {Get-CsOnlineLisPort},
+            {param($ChassisId,$PortId) Remove-CsOnlineLisPort -ChassisId $ChassisId -PortID $PortId},
+            {param($PortId,$ChassisId,$LocationId,$Description) Set-CsOnlineLisPort -PortId $PortId -ChassisId $ChassisId -LocationId $LocationId -Description $Description}
+        )
     WaP =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
             {Get-CsOnlineLisWirelessAccessPoint},
             {param($Bssid) Remove-CsOnlineLisWirelessAccessPoint -Bssid $Bssid},
-            {New-CsOnlineLisWirelessAccessPoint})
+            {param($Bssid,$Description,$LocationId) Set-CsOnlineLisWirelessAccessPoint -Bssid $Bssid -Description $Description -LocationId $LocationId}
+        )
 }
 
 # Parammaters for file validation Extracted from Backup Files for MicrosoftTeams Powershell module Version 7.0.0
 # Item1 denotes the Property Attribute name.
 # item2 denotes if the Attribute is required or not. If true, the Attribute is required for upload.
 # item3 denotes if the attribute is a key or not. If true, the property is a key.
+# item4 denotes the set of attributes used for uploading data to the cloud. If true, the attribute is used for upload.
 $All_Properties_Parameters = @{
 
     CivicAddress = @(
-        [System.Tuple[string,bool,bool]]::New("AdditionalLocationInfo",  $false, $false)
-        [System.Tuple[string,bool,bool]]::New("City",                    $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CityAlias",               $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CivicAddressId",          $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("CompanyName",             $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("CompanyTaxId",            $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Confidence",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CountryOrRegion",         $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("CountyOrDistrict",        $false, $false)
-        [System.Tuple[string,bool,bool]]::New("DefaultLocationId",       $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("Description",             $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Elin",                    $false, $false)
-        [System.Tuple[string,bool,bool]]::New("HouseNumber",             $false, $false)
-        [System.Tuple[string,bool,bool]]::New("HouseNumberSuffix",       $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Latitude",                $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("Longitude",               $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false)
-        [System.Tuple[string,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PartnerId",               $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PostDirectional",         $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PostalCode",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PreDirectional",          $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StateOrProvince",         $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StreetName",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StreetSuffix",            $false, $false)
-        [System.Tuple[string,bool,bool]]::New("TenantId",                $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("ValidationStatus",        $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("AdditionalLocationInfo",  $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("City",                    $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("CityAlias",               $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("CivicAddressId",          $true,  $true,  $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CompanyName",             $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("CompanyTaxId",            $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Confidence",              $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CountryOrRegion",         $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("CountyOrDistrict",        $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("DefaultLocationId",       $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Elin",                    $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("HouseNumber",             $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("HouseNumberSuffix",       $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Latitude",                $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Longitude",               $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PartnerId",               $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PostDirectional",         $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("PostalCode",              $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("PreDirectional",          $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("StateOrProvince",         $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("StreetName",              $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("StreetSuffix",            $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("TenantId",                $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("ValidationStatus",        $false, $false, $false)
     )
 
     LocationSchema = @(
-        [System.Tuple[string,bool,bool]]::New("City",                    $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CityAlias",               $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CivicAddressId",          $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("CompanyName",             $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("CompanyTaxId",            $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Confidence",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("CountryOrRegion",         $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("CountyOrDistrict",        $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Description",             $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Elin",                    $false, $false)
-        [System.Tuple[string,bool,bool]]::New("HouseNumber",             $false, $false)
-        [System.Tuple[string,bool,bool]]::New("HouseNumberSuffix",       $false, $false)
-        [System.Tuple[string,bool,bool]]::New("IsDefault",               $false, $false)
-        [System.Tuple[string,bool,bool]]::New("Latitude",                $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("Location",                $false, $false)
-        [System.Tuple[string,bool,bool]]::New("LocationId",              $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("Longitude",               $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false)
-        [System.Tuple[string,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PartnerId",               $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PostDirectional",         $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PostalCode",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("PreDirectional",          $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StateOrProvince",         $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StreetName",              $false, $false)
-        [System.Tuple[string,bool,bool]]::New("StreetSuffix",            $false, $false)
-        [System.Tuple[string,bool,bool]]::New("TenantId",                $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("ValidationStatus",        $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("City",                    $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CityAlias",               $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CivicAddressId",          $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("CompanyName",             $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CompanyTaxId",            $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Confidence",              $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CountryOrRegion",         $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("CountyOrDistrict",        $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Elin",                    $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("HouseNumber",             $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("HouseNumberSuffix",       $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("IsDefault",               $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Latitude",                $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Location",                $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("LocationId",              $true,  $true , $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Longitude",               $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("NumberOfTelephoneNumbers",$false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("NumberOfVoiceUsers",      $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PartnerId",               $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PostDirectional",         $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PostalCode",              $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PreDirectional",          $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("StateOrProvince",         $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("StreetName",              $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("StreetSuffix",            $false, $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("TenantId",                $true,  $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("ValidationStatus",        $false, $false, $false)
     )
 
     Subnet = @(
-        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
-        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("Subnet",      $true,  $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("LocationId",              $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Subnet",                  $true,  $true,  $true )
     )
 
     Switch = @(
-        [System.Tuple[string,bool,bool]]::New("ChassisId",   $true,  $true)
-        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
-        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+        [System.Tuple[string,bool,bool,bool]]::New("ChassisId",               $true,  $true,  $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("LocationId",              $true,  $false, $true )
     )
 
     Port = @(
-        [System.Tuple[string,bool,bool]]::New("PortID",      $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("ChassisID",   $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
-        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
+        [System.Tuple[string,bool,bool,bool]]::New("PortID",                  $true,  $true,  $true )
+        [System.Tuple[string,bool,bool,bool]]::New("ChassisID",               $true,  $true,  $true )
+        [System.Tuple[string,bool,bool,bool]]::New("LocationId",              $true,  $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $true )
     )
 
     WaP = @(
-        [System.Tuple[string,bool,bool]]::New("Bssid",       $true,  $true )
-        [System.Tuple[string,bool,bool]]::New("Description", $false, $false)
-        [System.Tuple[string,bool,bool]]::New("LocationId",  $true,  $false)
+        [System.Tuple[string,bool,bool,bool]]::New("Bssid",                   $true,  $true,  $true )
+        [System.Tuple[string,bool,bool,bool]]::New("Description",             $false, $false, $true )
+        [System.Tuple[string,bool,bool,bool]]::New("LocationId",              $true,  $false, $true )
     )
 }
 
