@@ -438,7 +438,7 @@ function Reset-Property {
     }
 }
 
-function Publish-TACProperty {
+function Publish-Property {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [Parameter(Mandatory = $true)]
@@ -742,17 +742,17 @@ function Read-TACData {
 
     .DESCRIPTION
         Reads a CSV/XML file using Import-Csv/Import-CliXml and returns a System.Object.
-        This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 7.0.0 scheme
-        and that all required columns are present and not null.
+        This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 6.9.0 scheme
+        and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
         Optionally, you pay pass a SHA256 checksum to validate the file integrity further.
 
-    .PARAMETER Path
+    .PARAMETER Path (Mandatory)
         The full file path to the backup file to import.
     
-    .PARAMETER Properties
+    .PARAMETER Properties (Optional)
         The type of property to import (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
     
-    .PARAMETER Checksum
+    .PARAMETER Checksum (Optional)
         The SHA256 checksum of the backup file to validate its integrity.
     
     .INPUTS
@@ -905,10 +905,10 @@ function Reset-TACProperty {
         This is a high impact function, therefore comfirmation is on by default. to turn of confirmation do -Confirm:$false.
         To get this menu use Get-Help Reset-TACProperty -Full
     
-    .PARAMETER Property
+    .PARAMETER Property (Mandatory)
         The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
 
-    .PARAMETER Unsafe
+    .PARAMETER Unsafe (Optional)
         If this switch is used, the function will not log to file while deleting the property objects.
         By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
         This is done to keep track of deleted objects in case of a mistake or power loss.
@@ -918,7 +918,7 @@ function Reset-TACProperty {
         System.Switch[] (Unsafe)
     
     .OUTPUTS
-        System.Object[] (Deleted objects)
+        System.Object[] (Deleted objects collection)
 
     .EXAMPLE
         Reset-TACProperty -Property "Port" -Unsafe
@@ -955,6 +955,61 @@ function Reset-TACProperty {
         # otherwise, call with default confirmation behavior
         return (Reset-Property -Property $Property -Unsafe:$Unsafe)
     }
+}
+
+function Publish-TACProperty {
+    <#
+    .SYNOPSIS
+        Upload all objects for a particular Property to Teams Admin Center.
+
+    .DESCRIPTION
+        This function uploads all objects for a particular Property into Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        It uses the MicrosoftTeams PowerShell Module to perform the operation. -Confirm switch is supported by this function.
+        This function also checks the integrety of the data set by checking if the data schema matches MicrosoftTeams 6.9.0 scheme
+        and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
+
+        To get this menu use Get-Help Reset-TACProperty -Full
+
+    .PARAMETER Values (Mandatory)
+        the data set to upload in the form of System.Object. You can use Read-TACData to load data set from a file.
+
+    .PARAMETER Property (Mandatory)
+        The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
+
+    .INPUTS
+        System.Object[] (Values)
+        System.String[] (Property)
+
+    .OUTPUTS
+        System.Object[] (Uploaded objects collection)
+
+    .EXAMPLE
+        $MyValues = Read-TACData -Path "C:\Path\to\<Port_4506.csv>"
+        Publish-TACProperty -Values $MyValues -Property "Port"
+        Load all Port objects into Teams Admin Center.
+
+    .EXAMPLE
+        $MyValues = Read-TACData -Path "C:\Path\to\<Switch_4506.csv>"
+        Publish-TACProperty -Values $MyValues -Property "Switch" -Confirm
+        Load all Switch objects into Teams Admin Center but confirm before uploading.
+
+    .NOTES
+        This script is provided as-is and is not supported by me. Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+    
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Object]$Values,
+        [Parameter(Mandatory = $true)]
+        [string]$Property
+    )
+
+    return Publish-Property -Values $Values -Property $Property
+
 }
 
 # Export public functions
