@@ -180,3 +180,8 @@ Import-Module BackAtTAC
     Foreach ($DataArray in $LoadedData) {
         $DataArray
     }
+
+# EXAMPLE 8
+    # Load Port data from CSV in current directory and publish to Teams Admind Center
+    $LoadedData = Read-TACData -Path .\Port_0805.csv
+    Publish-TacProperty -Values $LoadedData -Property Port

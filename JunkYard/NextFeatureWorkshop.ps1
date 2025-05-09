@@ -167,3 +167,18 @@ $MyValue =  Read-TACData -Path .\Subnet_MissingREntry.csv
 
 
 #---------------------------------------- Function under construction ----------------------------------------
+
+ # Clean up jobs and receive verbose output
+ $Jobs | Wait-Job
+
+ if($PSBoundParameters.ContainsKey('Verbose')) {
+     foreach ($job in $Jobs) {
+         "=== Job $($job.Id) Verbose Output ==="
+         $job.Verbose # | ForEach-Object { "  $_" }
+         $job | Receive-Job
+     }
+ } else {
+     $jobs | Receive-Job
+ }
+
+ $jobs | Remove-Job

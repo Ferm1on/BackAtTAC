@@ -156,6 +156,23 @@ Read-TACData includes some error checking to ensure users load properties safely
 
 -Checksum may also be an array of checksums. Remember to make sure to order your input arrays correspond. That is, $PathCSV[i] → $Properties[i] → $Checksum[i].
 
+### Uploading Data Back to Teams Admin Center
+
+The BackAtTAC module also includes an easy way to publish data that was loaded into PowerShell using Read-TACData. You can use the Publish-TACProperty function to upload your backed-up data back into the Teams Admin Center.
+
+**Publish-TACData** – Use this to upload data into the Teams Admin Center. For example:
+  ```powershell
+  # First load your backed up data.
+  $LoadedData = Read-TACData -Path .\Port_0805.csv
+  # Next, uploaded it to Teams Admin Center.
+  Publish-TacProperty -Values $LoadedData -Property Port
+  ```  
+  This will upload all attribute-value pairs from $LoadedData and return a System.Object[] containing all the uploaded values as confirmation.
+
+Publish-TACProperty includes error checking to ensure users upload properties safely to the Teams Admin Center (the same error checking as Read-TACData). For example, if a required attribute is missing from a loaded property, the publish will fail. You can use -Verbose to see the status of all checks when running the command.
+
+Finally, -Confirm is also supported for extra safety.
+
 ## Contribution and Feedback
 
 Contributions, suggestions, and feature requests for BackAtTAC are welcome! If you have an idea for supporting additional Teams Admin Center data (for example, if Microsoft introduces new location-related settings) or any improvements, please open an issue or submit a pull request on the GitHub repository. 
