@@ -181,7 +181,13 @@ Import-Module BackAtTAC
         $DataArray
     }
 
-# EXAMPLE 8
+# EXAMPLE 8 SETUP
+
+# dir .\TACBackUp_0805\
+# Mode                 LastWriteTime         Length Name
+# ----                 -------------         ------ ----
+# la---            5/4/2025 12:44 PM          10778 Port_0805.csv
+
     # Load Port data from CSV in current directory and publish to Teams Admind Center
     $LoadedData = Read-TACData -Path .\Port_0805.csv
     Publish-TacProperty -Values $LoadedData -Property Port
