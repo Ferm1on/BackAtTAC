@@ -11,23 +11,11 @@ $All_Properties_Exporters = @{
 
         $CivicAddress = Get-CsOnlineLisCivicAddress 
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $CivicAddress -or $CivicAddress.Count -eq 0) {
             Write-Verbose "No CivicAddress found in Teams Admin Center; skipping CivicAddress export."
             return
-        }
-
-        if ($FastVerbose -and $Fast) {
-            & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         } else {
-            & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
+            & $Write_File -FolderPath $Path -Property $CivicAddress -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         }
     }
 
@@ -37,23 +25,11 @@ $All_Properties_Exporters = @{
 
         $LocationSchema = Get-CsOnlineLisLocation
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $LocationSchema -or $LocationSchema.Count -eq 0) {
             Write-Verbose "No LocationSchema found in Teams Admin Center; skipping LocationSchema export."
             return
-        }
-        
-        if ($FastVerbose -and $Fast) {
-            & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         } else {
-            & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
+            & $Write_File -FolderPath $Path -Property $LocationSchema -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         }
     }
 
@@ -63,24 +39,12 @@ $All_Properties_Exporters = @{
 
         $Subnet = Get-CsOnlineLisSubnet
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $Subnet -or $Subnet.Count -eq 0) {
             Write-Verbose "No Subnet found in Teams Admin Center; skipping Subnet export."
             return
-        }
-
-        if($FastVerbose -and $Fast){
+        } else{
             & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
-        } else {
-            & $Write_File -FolderPath $Path -Property $Subnet -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
-        }
+        } 
     }
 
     Switch = {
@@ -89,24 +53,12 @@ $All_Properties_Exporters = @{
 
         $Switch = Get-CsOnlineLisSwitch
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $Switch -or $Switch.Count -eq 0) {
             Write-Verbose "No Switch found in Teams Admin Center; skipping Switch export."
             return
-        }
-
-        if($FastVerbose -and $Fast){
+        } else{
             & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
-        } else {
-            & $Write_File -FolderPath $Path -Property $Switch -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
-        }
+        } 
     }
 
     Port = {
@@ -115,23 +67,11 @@ $All_Properties_Exporters = @{
 
         $Port = Get-CsOnlineLisPort
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $Port -or $Port.Count -eq 0) {
             Write-Verbose "No Port found in Teams Admin Center; skipping Port export."
             return
-        }
-
-        if($FastVerbose -and $Fast){
-            & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         } else {
-            & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-        
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
+            & $Write_File -FolderPath $Path -Property $Port -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         }
     }
 
@@ -141,22 +81,11 @@ $All_Properties_Exporters = @{
 
         $WaP = Get-CsOnlineLisWirelessAccessPoint
 
-        if ($FastVerbose) {
-            $VerbosePreference = 'Continue'
-        }
-
         if (-not $WaP -or $WaP.Count -eq 0) {
             Write-Verbose "No WaP found in Teams Admin Center; skipping WaP export."
             return
-        }
-        if($FastVerbose -and $Fast){
-            & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         } else {
-            & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
-        }
-        
-        if ($FastVerbose) {
-            $VerbosePreference = 'SilentContinue'
+            & $Write_File -FolderPath $Path -Property $WaP -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$FastVerbose
         }
     }
 }

@@ -51,8 +51,6 @@ function Write-File {
         [Parameter(Mandatory=$false)]
         [switch]$Fast=$false
     )
-    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
-    #Write-Host "Verbose Setting: $callerVerbose"
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     if (-not $Property -or $Property.Count -eq 0) {
@@ -668,16 +666,13 @@ function BackUp-TACData {
     Write-Verbose "Backing up properties"
     try {
         # Backing Up All Properties
-         # Fast Option, Backup all properties in parallel. If not selected, backup properties sequentially.
+        # Fast Option, Backup all properties in parallel. If not selected, backup properties sequentially.
         if($Fast) {
             $jobs = @()
 
-            $FastVerbose = $false
-            if ($VerbosePreference -eq 'Continue') {
-                $FastVerbose = $true
-            }
-      
-              # Backup all properties else Backup selected properties.
+            $FastVerbose = $PSBoundParameters.ContainsKey('Verbose')
+
+            # Backup all properties else Backup selected properties.
             if(-not $Properties -or $Properties.Count -eq 0) {
                 
                 foreach ($Property in $All_Properties_Exporters.Values) {
@@ -687,24 +682,12 @@ function BackUp-TACData {
             } else {
                 
                 foreach ($Property in $Properties) {
-                    $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters
-                    .($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
+                    $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters.($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
                 }
             }
               
             # Clean up jobs.
-            $Jobs | Wait-Job
-
-            if($PSBoundParameters.ContainsKey('Verbose')) {
-                foreach ($job in $Jobs) {
-                    "=== Job $($job.Id) Verbose Output ==="
-                    $job.Verbose # | ForEach-Object { "  $_" }
-                    $job | Receive-Job
-                }
-            } else {
-                $jobs | Receive-Job
-            }
-
+            $Jobs | Wait-Job | Receive-Job
             $jobs | Remove-Job
       
           } else {
@@ -713,13 +696,12 @@ function BackUp-TACData {
               if(-not $Properties -or $Properties.Count -eq 0) {
       
                   foreach ($Property in $All_Properties_Exporters.Values) {
-                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -FastVerbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
                   
               } else {
-      
                   foreach ($Property in $Properties) {
-                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -FastVerbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
               }
           }
@@ -745,6 +727,9 @@ function Read-TACData {
         This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 6.9.0 scheme
         and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
         Optionally, you pay pass a SHA256 checksum to validate the file integrity further.
+
+        To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
 
     .PARAMETER Path (Mandatory)
         The full file path to the backup file to import.
@@ -785,9 +770,6 @@ function Read-TACData {
         [Parameter(Mandatory=$false)]
          [string[]]$Checksum
     )
-
-    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
-    #Write-Host "Verbose Setting: $callerVerbose"
 
     # Variable Definitions
     $Backup_Files = [System.Collections.ArrayList]::new()
@@ -903,7 +885,9 @@ function Reset-TACProperty {
         It uses the MicrosoftTeams PowerShell Module to perform the operation.
         By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
         This is a high impact function, therefore comfirmation is on by default. to turn of confirmation do -Confirm:$false.
+
         To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
     
     .PARAMETER Property (Mandatory)
         The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
@@ -969,6 +953,7 @@ function Publish-TACProperty {
         and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
 
         To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
 
     .PARAMETER Values (Mandatory)
         the data set to upload in the form of System.Object. You can use Read-TACData to load data set from a file.
@@ -1019,7 +1004,6 @@ Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty, P
 
 
 #__________________________ Function Additions and Bugs __________________________
-# Add Teams Admin Center data backup upload function. (Dangerous as it will overwrite server data)
 # Add fast option to Read-TACData. (Use -AsJob for fast option)
 # Add return value of a checksum to Write-File function. This will allow the user to verify the integrity of the file after writing it later
 # Consider adding Write-Error $_.Exception.Message to catch errors.
