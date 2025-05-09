@@ -51,8 +51,6 @@ function Write-File {
         [Parameter(Mandatory=$false)]
         [switch]$Fast=$false
     )
-    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
-    #Write-Host "Verbose Setting: $callerVerbose"
 
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     if (-not $Property -or $Property.Count -eq 0) {
@@ -156,6 +154,7 @@ function Read-File {
         try {
             # Load the CSV
             $CsvObject = Import-Csv -Path $Path
+            $AllKeys = @()
         
             # Check existence and non-null for each column in CSV schema
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
@@ -190,26 +189,45 @@ function Read-File {
                         return
                     }
                     
-                    # Check for duplicate values in the column
-                    if($isKey){
-                        $duplicateValues = $CsvObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
-                    
-                        if ($duplicateValues) {
-                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
-                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
-                            return
-                        }
-                    }
-
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found on keys."
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated"
                 }
+
+                # Collect all key values
+                if($IsKey){
+                    $AllKeys += $ColName
+                }
+            }
+
+            # Check for duplicate key values
+            if ($AllKeys) {
+                # Group rows by the combination of all key columns
+                $duplicateGroups = $CsvObject |
+                    Group-Object -Property $AllKeys |
+                    Where-Object { $_.Count -gt 1 }
+            
+                if ($duplicateGroups) {
+                    foreach ($grp in $duplicateGroups) {
+                        # compute human-readable line numbers (+2 for header + zero-index)
+                        $lineNumbers = $grp.Group |
+                            ForEach-Object { [array]::IndexOf($CsvObject, $_) + 2 }
+            
+                        # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                        $combo = (
+                            $AllKeys |
+                            ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                        ) -join ', '
+            
+                        Write-Error "Duplicate key combination ($combo) found at CSV line(s): $($lineNumbers -join ', ')"
+                    }
+                    return
+                }
+                Write-Verbose "Duplicate key check passed for '$Path'"
             }
 
             # Check for non-standard attribute in loaded file
             $nonStandardAttributes = $CsvObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
             if ($nonStandardAttributes) {
-                Write-Error "Non-standard attributes found in CSV file: $($nonStandardAttributes -join ', ')"
-                return
+                Write-Verbose "Non-standard attributes found in CSV file: $($nonStandardAttributes -join ', ')"
             }
 
             Write-Verbose "CSV file: '$Path' passed attribute integrity check."
@@ -224,6 +242,7 @@ function Read-File {
     } elseif ($Path -match '\.(xml)$'){
         try {
             $XmlObject = Import-Clixml -Path $Path
+            $AllKeys = @()
 
             # Check existence and non-null for each column in XML schema
             foreach ($tuple in $All_Properties_Parameters[$Property]) {
@@ -254,28 +273,44 @@ function Read-File {
                         Write-Error "Required property '$colName' is empty in XML element indices: $($badLines -join ', ')"
                         return
                     }
-
-                    # Check for duplicate values in the required column
-                    if($isKey){
-                        # Check for duplicate values in the column
-                        $duplicateValues = $XmlObject | Group-Object -Property $colName | Where-Object { $_.Count -gt 1 }
-                    
-                        if ($duplicateValues) {
-                            $duplicateLines = $duplicateValues | ForEach-Object { $_.Group | Select-Object -ExpandProperty $colName }
-                            Write-Error "Duplicate values found in column '$colName' at CSV line(s): $($duplicateLines -join ', ')"
-                            return
-                        }    
-                    }
-
-                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated; No duplicates values found."
+                    Write-Verbose "Required Column '$colName' on '$Path' exists and it's fully populated."
                 }
+
+                # Collect all key values
+                if($IsKey){
+                    $AllKeys += $ColName
+                }
+            }
+
+            if ($AllKeys) {
+                # Group rows by the combination of all key columns
+                $duplicateGroups = $XmlObject |
+                    Group-Object -Property $AllKeys |
+                    Where-Object { $_.Count -gt 1 }
+            
+                if ($duplicateGroups) {
+                    foreach ($grp in $duplicateGroups) {
+                        # compute human-readable line numbers (+2 for header + zero-index)
+                        $lineNumbers = $grp.Group |
+                            ForEach-Object { [array]::IndexOf($XmlObject, $_) }
+            
+                        # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                        $combo = (
+                            $AllKeys |
+                            ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                        ) -join ', '
+            
+                        Write-Error "Duplicate key combination ($combo) found at Xml RefId: $($lineNumbers -join ', ')"
+                    }
+                    return
+                }
+                Write-Verbose "Duplicate key check passed for '$Path'"
             }
 
             # Check for non-standard attribute in loaded file
             $nonStandardAttributes = $XmlObject[0].PSObject.Properties.Name | Where-Object { $All_Properties_Parameters[$Property].Item1 -notcontains $_ }
             if ($nonStandardAttributes) {
-                Write-Error "Non-standard attributes found in XML file: $($nonStandardAttributes -join ', ')"
-                return
+                Write-Verbose "Non-standard attributes found in XML file: $($nonStandardAttributes -join ', ')"
             }            
             
             Write-Verbose "XML file: $Path passed attribute integrity check."
@@ -294,6 +329,243 @@ function Read-File {
 }
 $Read_File = [ScriptBlock]::Create((Get-Command Read-File -CommandType Function).Definition)
 
+# Function that errases all objects for a particular Property in the Teams Admin Center.
+function Reset-Property {
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact        = 'High'
+    )]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Unsafe
+    )
+
+    #------------------------------------------ ERROR CHECKING START ------------------------------------------
+
+    # Error checking for $Properties: Checking all user submited properties are supported
+    if (-not $All_Properties_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud erasure of '$Property' property."
+        return
+    }
+
+    #------------------------------------------- ERROR CHECKING END -------------------------------------------
+
+    #--------------------------------------------- VARIABLES START --------------------------------------------
+
+    # Build remove call function and parameters
+    $Remove = $All_Properties_Functions[$Property].Item2
+    $Arguments = @()
+    foreach ($tuple in $All_Properties_Parameters[$Property]) {
+        if ($tuple.Item3) {
+            $Arguments += $tuple.Item1
+        }
+    }
+
+    # Download property from TAC and exit if empty.
+    $PropertyToErase = $All_Properties_Functions[$Property].item1.Invoke()
+    $DeletedImtes = @()
+    if (-not $PropertyToErase) {
+        Write-Verbose "No values found for property '$Property', skiping deletion."
+        return
+      }
+    
+    #--------------------------------------------- VARIABLES END ----------------------------------------------
+
+    if (-not $Unsafe) {
+        
+        # Create a log file with the name of the property and the date
+        try {
+            $LogFile = "$($Property)_ResetLog_$((Get-Date).ToString('ddMM')).txt"
+            New-Item -Path $LogFile -ItemType File | Out-Null
+            
+            # Output full path of the log file if verbose is enabled
+            if ($VerbosePreference -eq 'Continue') {
+                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
+                Write-Verbose "Log file created: $LogFileFullPath"
+            }
+        } catch {
+            Write-Error "Failed to create log file: $_ file might already exists"
+            return
+        }
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property on Teams Admin Center", "Delete $($Arguments[0]) $($Item.$($Arguments[0]))")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Log the item to be removed
+                Add-Content -Path $LogFile -Value ($Item | Out-String)
+
+                # Remove item
+                & $Remove @param
+
+                # add to deleted array
+                $DeletedImtes += $Item
+            }
+        }
+
+            Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+            return $DeletedImtes
+
+    } else {
+        
+        foreach($Item in $PropertyToErase){
+
+            if ($PSCmdlet.ShouldProcess("$Property Property on Teams Admin Center", "Delete $($Arguments[0]) $($Item.$($Arguments[0]))")) {
+                
+                # Build parameters
+                $param = @{}
+                foreach ($name in $Arguments) {$param[$name] = $Item.$name}
+
+                # Remove item
+                & $Remove @param
+
+                # add to deleted array
+                $DeletedImtes += $Item
+            }
+        }
+
+        Write-Verbose "Property $Property has been reset from Teams Admin Center. All values have been removed."
+        return $DeletedImtes  
+    }
+}
+
+function Publish-Property {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Object]$Values,
+        [Parameter(Mandatory = $true)]
+        [string]$Property
+    )
+
+    #------------------------------------------ BASIC ERROR CHECKING START ------------------------------------------ 
+    # 1. Verify the property is supported for upload
+    if (-not $All_Properties_Functions.ContainsKey($Property)) {
+        Write-Error "This module does not support the cloud upload of '$Property' property."
+        return
+    }
+    # 2. If no values provided, skip processing
+    if (-not $Values -or $Values.Count -eq 0) {
+        Write-Verbose "No values provided for property '$Property'; skipping upload."
+        return
+    }
+    #------------------------------------------ BASIC ERROR CHECKING END ------------------------------------------ 
+
+    #------------------------------------------------ VARIABLES START ---------------------------------------------
+    
+    # Build function call parameters and get upload function
+    $Upload = $All_Properties_Functions[$Property].Item3
+    $Arguments = @()
+    # Create Item array to track uploaded items.
+    $UploadedItems = @()
+    # Create array to track keys
+    $AllKeys = @()
+    
+    #------------------------------------------------ VARIABLES END -----------------------------------------------
+
+    #------------------------------------------ ADVANCE ERROR CHECKING START --------------------------------------
+
+    foreach ($tuple in $All_Properties_Parameters[$Property]) {
+        $colName    = $tuple.Item1
+        $isRequired = $tuple.Item2
+        $isKey      = $tuple.Item3
+        $isArgument   = $tuple.Item4
+
+        # Check Column existence
+        if (-not ($Values[0].PSObject.Properties.Name -contains $colName)) {
+            if ($isRequired) {
+                Write-Error "'$colName' column is required, cannot upload."
+                return
+            }
+            else {
+                Write-Verbose "'$colName' does not exist"
+                continue
+            }
+        }
+        
+        # Column is present, if it's required, ensure no row is empty/null
+        if ($isRequired) {
+
+            # build a list of zero-based indices where the value is null or whitespace <-- NEEDS TESTING
+            $badIndices = 0..($Values.Count - 1) |
+                Where-Object {[string]::IsNullOrWhiteSpace($Values[$_].$colName)}
+
+            if ($badIndices) {
+                # adjust to human-friendly line numbers (+2 because header is line 1) <-- NEEDS TESTING
+                $badLines = $badIndices | ForEach-Object { $_ + 1 }
+                Write-Error "Required column '$colName' has empty values at index: $($badLines -join ', ')"
+                return
+            }
+            
+            Write-Verbose "Required Column '$colName' exists and it's fully populated"
+        }
+
+        # Collect all key values
+        if($isKey){
+            $AllKeys += $colName
+        }
+
+        # Build Arguments array
+        if($isArgument){
+            $Arguments += $colName
+        }
+    }
+
+    # Check keys
+    if ($AllKeys) {
+        # Group rows by the combination of all key columns
+        $duplicateGroups = $Values |
+            Group-Object -Property $AllKeys |
+            Where-Object { $_.Count -gt 1 }
+    
+        if ($duplicateGroups) {
+            foreach ($grp in $duplicateGroups) {
+                # compute human-readable line numbers (+2 for header + zero-index)
+                $lineNumbers = $grp.Group |
+                    ForEach-Object { [array]::IndexOf($Values, $_) }
+    
+                # build a “Key1=val1, Key2=val2” summary of the duplicate combo
+                $combo = (
+                    $AllKeys |
+                    ForEach-Object { "$_=$($grp.Group[0].$_)" }
+                ) -join ', '
+    
+                Write-Error "Duplicate key combination ($combo) found at index: $($lineNumbers -join ', ')"
+            }
+            return
+        }
+        Write-Verbose "Duplicate key check passed for '$Property' property."
+    }
+
+    #------------------------------------------ ADVANCE ERROR CHECKING START -------------------------------------- 
+
+    # upload each value to Teams Admin Center
+    foreach($item in $Values){
+
+        if ($PSCmdlet.ShouldProcess("$Property property on Teams Admin Center", "Upload $($Arguments[0]) $($item.$($Arguments[0]))")) {
+            
+            # Build parameters
+            $param = @{}
+            foreach ($name in $Arguments) {$param[$name] = $item.$name}
+
+            # Upload item to TAC
+            & $Upload @param
+
+            # add to Uploaded array
+            $UploadedItems += $item
+        }
+    }
+
+    Write-Verbose "Property $Property has been uploaded to Teams Admin Center. All values have been added."
+    return $UploadedItems
+}
 
 #---------------------------------------- PUBLIC FUNCTION DEFINITIONS -----------------------------------------
 
@@ -379,7 +651,7 @@ function BackUp-TACData {
     #------------------------------------------ ERROR CHECKING START ------------------------------------------
     # Error checking for $FolderPath: Checking if path exists
     if (-not (Test-Path -Path $Path)) {
-        Write-Error "Invalid FolderPath: $Path"
+        Write-Error "Invalid Path: $Path"
         return
     }
 
@@ -394,16 +666,13 @@ function BackUp-TACData {
     Write-Verbose "Backing up properties"
     try {
         # Backing Up All Properties
-         # Fast Option, Backup all properties in parallel. If not selected, backup properties sequentially.
+        # Fast Option, Backup all properties in parallel. If not selected, backup properties sequentially.
         if($Fast) {
             $jobs = @()
 
-            $FastVerbose = $false
-            if ($VerbosePreference -eq 'Continue') {
-                $FastVerbose = $true
-            }
-      
-              # Backup all properties else Backup selected properties.
+            $FastVerbose = $PSBoundParameters.ContainsKey('Verbose')
+
+            # Backup all properties else Backup selected properties.
             if(-not $Properties -or $Properties.Count -eq 0) {
                 
                 foreach ($Property in $All_Properties_Exporters.Values) {
@@ -413,24 +682,12 @@ function BackUp-TACData {
             } else {
                 
                 foreach ($Property in $Properties) {
-                    $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters
-                    .($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
+                    $Jobs += Start-ThreadJob -ThrottleLimit $ThrottleLimit  -ScriptBlock $All_Properties_Exporters.($Property) -ArgumentList $Path, $Write_File, $CSV, $XML, $Fast, $FastVerbose
                 }
             }
               
             # Clean up jobs.
-            $Jobs | Wait-Job
-
-            if($PSBoundParameters.ContainsKey('Verbose')) {
-                foreach ($job in $Jobs) {
-                    "=== Job $($job.Id) Verbose Output ==="
-                    $job.Verbose # | ForEach-Object { "  $_" }
-                    $job | Receive-Job
-                }
-            } else {
-                $jobs | Receive-Job
-            }
-
+            $Jobs | Wait-Job | Receive-Job
             $jobs | Remove-Job
       
           } else {
@@ -439,13 +696,12 @@ function BackUp-TACData {
               if(-not $Properties -or $Properties.Count -eq 0) {
       
                   foreach ($Property in $All_Properties_Exporters.Values) {
-                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+                      & $Property -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -FastVerbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
                   
               } else {
-      
                   foreach ($Property in $Properties) {
-                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -Verbose:$PSBoundParameters.ContainsKey('Verbose')
+                      & $All_Properties_Exporters.($Property) -Path $Path -Write_File $Write_File -CSV:$CSV -XML:$XML -Fast:$Fast -FastVerbose:$PSBoundParameters.ContainsKey('Verbose')
                   }
               }
           }
@@ -468,17 +724,20 @@ function Read-TACData {
 
     .DESCRIPTION
         Reads a CSV/XML file using Import-Csv/Import-CliXml and returns a System.Object.
-        This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 7.0.0 scheme
-        and that all required columns are present and not null.
+        This function checks the integrety of the backup file by checking if file schema matches MicrosoftTeams 6.9.0 scheme
+        and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
         Optionally, you pay pass a SHA256 checksum to validate the file integrity further.
 
-    .PARAMETER Path
+        To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
+
+    .PARAMETER Path (Mandatory)
         The full file path to the backup file to import.
     
-    .PARAMETER Properties
-        The type of property to import (e.g., CivicAddress, LocationSchemachema, Switch, Port, WaP).
+    .PARAMETER Properties (Optional)
+        The type of property to import (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
     
-    .PARAMETER Checksum
+    .PARAMETER Checksum (Optional)
         The SHA256 checksum of the backup file to validate its integrity.
     
     .INPUTS
@@ -511,9 +770,6 @@ function Read-TACData {
         [Parameter(Mandatory=$false)]
          [string[]]$Checksum
     )
-
-    #$callerVerbose = (Get-Variable -Name VerbosePreference -Scope 0).Value
-    #Write-Host "Verbose Setting: $callerVerbose"
 
     # Variable Definitions
     $Backup_Files = [System.Collections.ArrayList]::new()
@@ -618,14 +874,136 @@ function Read-TACData {
     return $Backup_Files
 }
 
+# Function wrapper for future expension and use. eventually could use -Fast switch, or reset multiple properties at once
+function Reset-TACProperty {
+        <#
+    .SYNOPSIS
+        Erases all objects for a particular Property in Teams Admin Center.
+
+    .DESCRIPTION
+        This function erases all objects for a particular Property in Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        It uses the MicrosoftTeams PowerShell Module to perform the operation.
+        By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
+        This is a high impact function, therefore comfirmation is on by default. to turn of confirmation do -Confirm:$false.
+
+        To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
+    
+    .PARAMETER Property (Mandatory)
+        The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
+
+    .PARAMETER Unsafe (Optional)
+        If this switch is used, the function will not log to file while deleting the property objects.
+        By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
+        This is done to keep track of deleted objects in case of a mistake or power loss.
+    
+    .INPUTS
+        System.String[] (Property)
+        System.Switch[] (Unsafe)
+    
+    .OUTPUTS
+        System.Object[] (Deleted objects collection)
+
+    .EXAMPLE
+        Reset-TACProperty -Property "Port" -Unsafe
+        Erases all Port objects in Teams Admin Center without logging to file.
+
+    .EXAMPLE
+        Reset-TACProperty -Property "Port" -Unsafe -Confirm:$false
+        Erases all Port objects in Teams Admin Center without logging to file and without confirmation.
+
+    .NOTES
+        This script is provided as-is and is not supported by me. Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+
+    [CmdletBinding(
+        SupportsShouldProcess = $true,
+        ConfirmImpact = 'High'
+        )]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Unsafe
+    )
+
+    if ($PSBoundParameters.ContainsKey('Confirm') -and -not $PSBoundParameters['Confirm']) {
+        # user explicitly did: -Confirm:$false
+        return (Reset-Property -Property $Property -Unsafe:$Unsafe -Confirm:$false)
+    }
+    else {
+        # otherwise, call with default confirmation behavior
+        return (Reset-Property -Property $Property -Unsafe:$Unsafe)
+    }
+}
+
+function Publish-TACProperty {
+    <#
+    .SYNOPSIS
+        Upload all objects for a particular Property to Teams Admin Center.
+
+    .DESCRIPTION
+        This function uploads all objects for a particular Property into Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        It uses the MicrosoftTeams PowerShell Module to perform the operation. -Confirm switch is supported by this function.
+        This function also checks the integrety of the data set by checking if the data schema matches MicrosoftTeams 6.9.0 scheme
+        and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
+
+        To get this menu use Get-Help Reset-TACProperty -Full
+        To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
+
+    .PARAMETER Values (Mandatory)
+        the data set to upload in the form of System.Object. You can use Read-TACData to load data set from a file.
+
+    .PARAMETER Property (Mandatory)
+        The type of property to whipe (e.g., CivicAddress, LocationSchema, Switch, Port, WaP).
+
+    .INPUTS
+        System.Object[] (Values)
+        System.String[] (Property)
+
+    .OUTPUTS
+        System.Object[] (Uploaded objects collection)
+
+    .EXAMPLE
+        $MyValues = Read-TACData -Path "C:\Path\to\<Port_4506.csv>"
+        Publish-TACProperty -Values $MyValues -Property "Port"
+        Load all Port objects into Teams Admin Center.
+
+    .EXAMPLE
+        $MyValues = Read-TACData -Path "C:\Path\to\<Switch_4506.csv>"
+        Publish-TACProperty -Values $MyValues -Property "Switch" -Confirm
+        Load all Switch objects into Teams Admin Center but confirm before uploading.
+
+    .NOTES
+        This script is provided as-is and is not supported by me. Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+    
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Object]$Values,
+        [Parameter(Mandatory = $true)]
+        [string]$Property
+    )
+
+    return Publish-Property -Values $Values -Property $Property
+
+}
+
 # Export public functions
-Export-ModuleMember -Function BackUp-TACData, Read-TACData
+Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty, Publish-TACProperty
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 #__________________________ Function Additions and Bugs __________________________
-# Add Teams Admin Center data backup upload function. (Dangerous as it will overwrite server data)
 # Add fast option to Read-TACData. (Use -AsJob for fast option)
 # Add return value of a checksum to Write-File function. This will allow the user to verify the integrity of the file after writing it later
 # Consider adding Write-Error $_.Exception.Message to catch errors.
