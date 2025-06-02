@@ -104,7 +104,14 @@ $All_Properties_Functions = @{
     LocationSchema =
         [System.Tuple[scriptblock,scriptblock,scriptblock]]::New(
             {Get-CsOnlineLisLocation},
-            {param($LocationId) Remove-CsOnlineLisLocation -LocationId $LocationId},
+            {param($LocationId) 
+                $CurrentLocation = Get-CsOnlineLisLocation -LocationId $LocationId
+                if($CurrentLocation.IsDefault){
+                    return
+                } else {
+                    Remove-CsOnlineLisLocation -LocationId $LocationId
+                }
+            },
             {param($CivicAddressId,$Location,$Elin=$null) 
                 if($Elin){
                     New-CsOnlineLisLocation -CivicAddressId $CivicAddressId -Location $Location -Elin $Elin | OUT-NULL
