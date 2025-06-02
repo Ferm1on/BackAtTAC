@@ -19,7 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 To Load this module do
 Import-Module .\BackAtTAC.psd1
-Get-Help BackUp-TACData -Full (or Read-TACData))
+Get-Help BackUp-TACData -Full (or Read-TACData, Reset-TACProperty, Publish-TACProperty))
 To unload Module do
 Remove-Module BackAtTAC
 To List Modules do
@@ -476,7 +476,7 @@ function Publish-Property {
         $colName    = $tuple.Item1
         $isRequired = $tuple.Item2
         $isKey      = $tuple.Item3
-        $isArgument   = $tuple.Item4
+        $isArgument = $tuple.Item4
 
         # Check Column existence
         if (-not ($Values[0].PSObject.Properties.Name -contains $colName)) {
