@@ -576,7 +576,7 @@ function BackUp-TACData {
         Backs up Teams Admin Center data through 'MicrosoftTeams' PowerShell Module.
     
     .DESCRIPTION
-        Backs up property data from Microsoft Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        Backs up property data from Microsoft Teams Admin Center (e.g., CivicAddress, LocationSchema, Subnet, Switch, Port and WaP).
         Allows optional multithreading for faster (default is slow) export, uses switch for CSV/XML export preferences,
         and can optionally filter which properties are backed up. 
         Default: All properties are backed up and exported in both CSV and XML formats overwriting existing files with the same name. 
@@ -881,7 +881,7 @@ function Reset-TACProperty {
         Erases all objects for a particular Property in Teams Admin Center.
 
     .DESCRIPTION
-        This function erases all objects for a particular Property in Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        This function erases all objects for a particular Property in Teams Admin Center (e.g., CivicAddress, LocationSchema, Subnet, Switch, Port and WaP).
         It uses the MicrosoftTeams PowerShell Module to perform the operation.
         By default the function will log deleted objects to a file. log file name is '<Property>_ResetLog_DDMM.txt'.
         This is a high impact function, therefore comfirmation is on by default. to turn of confirmation do -Confirm:$false.
@@ -947,7 +947,7 @@ function Publish-TACProperty {
         Upload all objects for a particular Property to Teams Admin Center.
 
     .DESCRIPTION
-        This function uploads all objects for a particular Property into Teams Admin Center (e.g., CivicAddress, LocationSchema, Switch etc.).
+        This function uploads all objects for a particular Property into Teams Admin Center (e.g., CivicAddress, LocationSchema, Subnet, Switch, Port and WaP).
         It uses the MicrosoftTeams PowerShell Module to perform the operation. -Confirm switch is supported by this function.
         This function also checks the integrety of the data set by checking if the data schema matches MicrosoftTeams 6.9.0 scheme
         and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
