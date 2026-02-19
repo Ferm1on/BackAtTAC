@@ -28,6 +28,8 @@ Dependencies: MicrosoftTeams 6.9.0, Powershell 7.5 or higher for -Fast option.
 To install Dependencies do:
 Install-Module -Name PowerShellGet -Force -AllowClobber
 Install-Module -Name MicrosoftTeams -Force -AllowClobber
+Connect to TAC do:
+Connect-MicrosoftTeams
 #>
 
 #---------------------------------------- PRIVATE FUNCTION DEFINITIONS ----------------------------------------
@@ -621,7 +623,7 @@ function BackUp-TACData {
         Backs up CivicAddress and LocationSchema as CSV, using multithreading (Fast).
 
     .LINK
-        https://github.com/Ferm1on/Teams-Powershell-Backup-Module
+        https://github.com/Ferm1on/BackAtTAC/
 
     .NOTES
         This script is provided as-is and is not supported by me. Please test before using it in a production environment.
@@ -728,7 +730,7 @@ function Read-TACData {
         and that all required columns are present and not null as well as the presence of duplicate keys (Including composite keys)
         Optionally, you pay pass a SHA256 checksum to validate the file integrity further.
 
-        To get this menu use Get-Help Reset-TACProperty -Full
+        To get this menu use Get-Help Read-TACProperty -Full
         To get list of all functions do: Get-Command -Module BackAtTAC -CommandType Function
 
     .PARAMETER Path (Mandatory)
@@ -751,6 +753,8 @@ function Read-TACData {
     .EXAMPLE
         $csvData = Read-TACData -Path "C:\Path\to\<yourfile.csv>" -Properties "CivicAddress" -Checksum "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
         Import data from the specified file into $csvData.
+    .LINK
+        https://github.com/Ferm1on/BackAtTAC/
 
     .NOTES
         This script is provided as-is and is not supported by me. Please test before using it in a production environment.
@@ -996,9 +1000,265 @@ function Publish-TACProperty {
     return Publish-Property -Values $Values -Property $Property
 
 }
+# Returns all WAPs matching Civic Address ID, Location ID, Civic Address Description, and/or Location.
+function Get-TACWAPs {
+    <#
+    .SYNOPSIS
+        Returns a set of all waps matching the provided Civic Address ID, Location ID, Civic Address Description, and/or Location by using 'MicrosoftTeams' PowerShell Module.
+    
+    .DESCRIPTION
+        This function retrieves Wireless Access Points (WAPs) from the Microsoft Teams Admin Center that are associated with specific geographic or logical identifiers. 
+        It cross-references the online Wireless Access Point list with Civic Addresses and Locations to provide a filtered set of hardware.
+        This is particularly useful for auditing networking hardware at specific physical sites or within defined sub-sections of a building.
+        You may provide multiple parameters with mixed array or single values to the function. For example Get-Locations Waps -CivicAddressId $CivicAddressArray -Locations "My Location Name"
+        The output array is the union of all WAPs that match provided information.
+
+    .PARAMETER CivicAddressId (Optional)
+        An array of Unique Identifiers (GUIDs) for the Civic Addresses to filter by.
+
+    .PARAMETER LocationId (Optional)
+        An array of Unique Identifiers (GUIDs) for specific Locations (e.g., floors or rooms) to filter by.
+
+    .PARAMETER CivicAddress (Optional)
+        The human-readable description of the Civic Address (e.g., "Main Campus Building A").
+
+    .PARAMETER Location (Optional)
+        The human-readable name of the specific Location (e.g., "Floor 2 - Conference Room").
+
+    .INPUTS
+        System.String[] (CivicAddressId)
+        System.String[] (LocationId)
+        System.String[] (CivicAddresse)
+        System.String[] (Location)
+
+    .OUTPUTS
+        System.Object[] (Set of WAP that match provided Parameters)  
+
+    .EXAMPLE
+        Get-TACWAPs -CivicAddress "Corporate HQ"
+        Returns all WAPs associated with any locations assigned to the "Corporate HQ" civic address.
+
+    .EXAMPLE
+        Get-TACWAPs -LocationId "12345678-abcd-1234-abcd-1234567890ab"
+        Returns the WAP(s) specifically assigned to the provided Location ID.
+
+    .EXAMPLE
+        $CivicIds = @('550e8400-e29b-41d4-a716-446655440000','a1b2c3d4-e5f6-7890-abcd-ef1234567890')
+        $LocNames = @('Floor 1 - Main Lobby','2nd Floor - West Wing','Basement - Data Center')
+        Get-TACWAPs -CivicAddressId $CivicIds -Location $LocNames
+
+    .LINK
+        https://github.com/Ferm1on/BackAtTAC/
+
+    .NOTES
+        This script is provided as-is and is not supported by me. Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false)]
+        [string[]]$CivicAddressId,
+
+        [Parameter(Mandatory=$false)]
+        [string[]]$LocationId,
+
+        [Parameter(Mandatory=$false)]
+        [string[]]$CivicAddress,
+                
+        [Parameter(Mandatory=$false)]
+        [string[]]$Location
+    )
+    
+    $WAPs = Get-CsOnlineLisWirelessAccessPoint
+    $WAPFiltered = @()
+
+    # Add All WAPs that belong to provided Civic Address IDs.
+    if ($CivicAddressId) {
+        foreach ($civ in $CivicAddressId) {
+
+            $lcs = Get-CsOnlineLisLocation -CivicAddressId $civ
+            foreach ($lc in $lcs) {
+                $WAPFiltered += $WAPs | Where-Object LocationId -eq $lc.LocationId
+            }
+        }
+    }
+
+    # Add all WAPs that belong to provided Location IDS.
+    if ($LocationId){
+        foreach ($lc in $LocationId) {
+            
+            $PotentialWAPs = $WAPs | Where-Object LocationId -eq $lc
+            foreach ($WAP in $PotentialWAPs)
+            {
+                if (-not ($WAPFiltered -contains $WAP)){
+                    $WAPFiltered += $WAP
+                }
+            }
+
+        }
+    }
+
+    # Add all WAPs that belong to provided Civic Address Description.
+    if ($CivicAddress) {
+        foreach ($Description in $CivicAddress) {
+
+            # Get Civic Address ID
+            $id = Get-CsOnlineLisCivicAddress -Description $Description
+
+            $lcs = Get-CsOnlineLisLocation -CivicAddressId $id.CivicAddressId
+            foreach ($lc in $lcs) {
+                $PotentialWAPs = $WAPs | Where-Object LocationId -eq $lc.LocationId
+                foreach ($WAP in $PotentialWAPs) {
+                    if (-not ($WAPFiltered -contains $WAP)){
+                        $WAPFiltered += $WAP
+                    }
+                }
+            }
+        }
+    }
+
+    # Add all WAPs that belong to provided Location
+    If ($Location) {
+        foreach ($lc in $Location){
+            # Get Location ID
+            $id = Get-CsOnlineLisLocation -Location $lc
+
+            $PotentialWAPs = $WAPs | Where-Object LocationId -eq $id.LocationId
+            foreach ($WAP in $PotentialWAPs) {
+                if (-not ($WAPFiltered -contains $WAP)){
+                    $WAPFiltered += $WAP
+                }
+            }
+        }
+    }
+    # Return Union of all provided WAPs that match provided parameters.
+    return $WAPFiltered
+ }
+
+ function Remove-TACWAPs {
+    <#
+    .SYNOPSIS
+        Removes Wireless Access Points (WAPs) from the Teams Admin Center based on WAP objects, BSSIDs, or Descriptions.
+    
+    .DESCRIPTION
+        This function removes WAP entries from the Microsoft Teams Location Information Server (LIS). 
+        It supports three distinct parameter sets to target specific hardware: by passing the full object, by BSSID, or by Description.
+        
+        WARNING: When using the -Description parameter, the function will remove ALL WAPs that share that exact description string.
+        This function supports -WhatIf and -Confirm to prevent accidental mass-deletion.
+
+    .PARAMETER WAP
+        An array of WAP objects (typically retrieved via Get-LocationWAPs or Get-CsOnlineLisWirelessAccessPoint). 
+        This is the default parameter set.
+
+    .PARAMETER BSSID
+        An array of strings representing the MAC address (BSSID) of the access points to be removed in the form "AA-BB-CC-DD-EE-FF".
+
+    .PARAMETER Description
+        An array of strings representing the description of the access points. 
+        Note: This targets all WAPs matching the provided descriptions.
+
+    .INPUTS
+        System.Object[] (WAP)
+        System.String[] (BSSID)
+        System.String[] (Description)
+
+    .OUTPUTS
+        System.Object[] (Collection of the WAP objects that were removed)
+
+    .EXAMPLE
+        Remove-TACWAPs -BSSID "00-11-22-33-44-55", "AA-BB-CC-DD-EE-FF"
+        Removes the WAPs associated with the specific hardware MAC addresses provided.
+
+    .EXAMPLE
+        $ToClean = Get-LocationWAPs -Location "Old Office"
+        Remove-TACWAPs -WAP $ToClean
+        Pipes a set of filtered WAP objects into the removal function.
+
+    .EXAMPLE
+        Remove-TACWAPs -Description "Guest-WiFi-AP" -Confirm:$false
+        Removes all WAPs named "Guest-WiFi-AP" without asking for individual confirmation.
+
+    .LINK
+        https://github.com/Ferm1on/BackAtTAC/
+
+    .NOTES
+        This script is provided as-is and is not supported by me. 
+        Please test before using it in a production environment.
+        If you modify the script, please give credit to the original author.
+        Author: Ferm1on
+        "Dream of electric sheep."
+    #>
+
+    [CmdletBinding(
+        DefaultParameterSetName = 'ByWAP', 
+        SupportsShouldProcess = $true,
+        ConfirmImpact        = 'High')]
+    param (
+        [Parameter(Mandatory=$true, ParameterSetName = 'ByWAP')]
+        [Object[]]$WAP,
+
+        [Parameter(Mandatory=$true, ParameterSetName = 'ByBSSID')]
+        [string[]]$BSSID,
+
+        [Parameter(Mandatory=$true, ParameterSetName = 'ByDescription')]
+        [string[]]$Description
+    )
+
+    $WAPs = Get-CsOnlineLisWirelessAccessPoint 
+    $RemovedWAPs = @()
+
+    switch ($PSCmdlet.ParameterSetName){
+        'ByWAP' {
+            foreach ($wp in $WAP){
+                $ToRemove = $WAPS | Where-Object BSSID -eq $wp.BSSID
+
+                if($ToRemove) {
+                    if ($PSCmdlet.ShouldProcess("TAC: Wi-Fi access points", "Delete BSSID = $($ToRemove.BSSID), Description = $($ToRemove.Description)")) {
+                        Remove-CsOnlineLisWirelessAccessPoint -BSSID $ToRemove.BSSID
+                        $RemovedWAPS += $ToRemove
+                    }
+                }
+            }
+        }
+
+        'ByBSSID' {
+            foreach ($id in $BSSID){
+                $ToRemove = $WAPS | Where-Object BSSID -eq $id
+
+                if($ToRemove) {
+                    if ($PSCmdlet.ShouldProcess("TAC: Wi-Fi access points", "Delete BSSID = $($ToRemove.BSSID), Description = $($ToRemove.Description)")) {
+                        Remove-CsOnlineLisWirelessAccessPoint -BSSID $ToRemove.BSSID
+                        $RemovedWAPS += $ToRemove
+                    }
+            
+                }
+            }
+        }
+
+        'ByDescription' {
+            foreach ($desc in $Description){
+                $ToRemove = $WAPS | Where-Object Description -eq $desc
+                
+                if($ToRemove) {
+                    foreach ($wap in $ToRemove){
+                        if ($PSCmdlet.ShouldProcess("TAC: Wi-Fi access points", "Delete BSSID = $($ToRemove.BSSID), Description = $($ToRemove.Description)")) {
+                            Remove-CsOnlineLisWirelessAccessPoint -BSSID $wap.BSSID
+                            $RemovedWAPS += $wap
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return $RemovedWAPs
+ }
 
 # Export public functions
-Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty, Publish-TACProperty
+Export-ModuleMember -Function BackUp-TACData, Read-TACData, Reset-TACProperty, Publish-TACProperty, Get-TACWAPs, Remove-TACWAPs
 
 <#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ NOTES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
