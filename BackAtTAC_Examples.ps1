@@ -191,3 +191,29 @@ Import-Module BackAtTAC
     # Load Port data from CSV in current directory and publish to Teams Admind Center
     $LoadedData = Read-TACData -Path .\Port_0805.csv
     Publish-TacProperty -Values $LoadedData -Property Port
+
+# EXAMPLE 9
+
+    # Remove all WAPs belonging to a particular Civic address after filtering them based on the Description.
+    $FristId = (Get-CsOnlineLisCivicAddress | Where-Object Description -Like "*Frist*").CivicAddressId
+    $LocationWAPs = Get-TACWaps -CIvicAddressId $FristId
+    $FilteredWAPs = $LocationWaps | Where-Object Description -match "BU1|BU2"
+
+    # Save WAP data before removal, maybe usefull if removing locations WAPs were associated with.
+    $FilteredWAPs | Export-Csv -Path  "C:\Users\johnd\Downloads\RemovedWaps.csv" -NoTypeInformation 
+
+    # Remove WAPs without requiring confirmation
+    $RemovedWAPs = Remove-TACWAPs -WAP $FilteredWAPs -Confirm:$false
+
+    # Confirm WAPs were removed. If removed, Get-TACWAPs will return no entries.
+    Get-TACWAPs -LocationId $RemovedWAPs.LocationId
+
+    # Cleanup locations associated with removed access points, if no other devices are associated with it.
+    $RemovedLocs = @()
+    foreach ($id in $RemovedWaps.LocationId) {
+        $RemovedLocs += (Get-CsOnlineLisLocation -LocationId $id)
+        Remove-CsOnlineLisLocation -LocationId $id
+    }
+
+    # Save Removed locations, maybe usefull if removing CivicAddres.
+    $RemovedLocs | Export-Csv -Path  "C:\Users\johnd\Downloads\RemovedLocs.csv" -NoTypeInformation 
