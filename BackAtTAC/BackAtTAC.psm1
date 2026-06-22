@@ -384,10 +384,9 @@ function Reset-Property {
             New-Item -Path $LogFile -ItemType File | Out-Null
             
             # Output full path of the log file if verbose is enabled
-            if ($VerbosePreference -eq 'Continue') {
-                $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
-                Write-Verbose "Log file created: $LogFileFullPath"
-            }
+            $LogFileFullPath = Join-Path -Path (Get-Location) -ChildPath $LogFile
+            Write-Verbose "Log file created: $LogFileFullPath"
+
         } catch {
             Write-Error "Failed to create log file: $_ file might already exists"
             return
@@ -1028,7 +1027,7 @@ function Get-TACWAPs {
     .INPUTS
         System.String[] (CivicAddressId)
         System.String[] (LocationId)
-        System.String[] (CivicAddresse)
+        System.String[] (CivicAddress)
         System.String[] (Location)
 
     .OUTPUTS

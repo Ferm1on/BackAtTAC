@@ -37,23 +37,23 @@ Import-Module BackAtTAC
     New-Item -Path $BackupFolder -ItemType Directory -Force | Out-Null 
 
     # Backup All Teams Phone Admin Center data and write verbosity output to log file
-    $LogFile = "TACLog_$((Get-Date).ToString('ddMM')).txt"
-    $FullLogFile = ".\$BackUpFolder\$LogFile"
-    BackUp-TACData -Path $BackUpFolder -Verbose 4>> $FullLogFile
+    $LOG_FILE = "TACLog_$((Get-Date).ToString('ddMM')).txt"
+    $FullLOG_FILE = ".\$BackUpFolder\$LOG_FILE"
+    BackUp-TACData -Path $BackUpFolder -Verbose 4>> $FullLOG_FILE
 
 # EXAMPLE 3
     # Create a backup folder with the current date and log file path
     $BackUpFolder = "TACBackUp_$((Get-Date).ToString('ddMM'))"
     New-Item -Path $BackupFolder -ItemType Directory -Force | Out-Null
-    $LogFile = "TACLog_$((Get-Date).ToString('ddMM')).txt"
-    $FullLogFile = ".\$BackUpFolder\$LogFile"
+    $LOG_FILE = "TACLog_$((Get-Date).ToString('ddMM')).txt"
+    $FullLOG_FILE = ".\$BackUpFolder\$LOG_FILE"
 
     # Only backup select properties to CSV. and log verbosity to file
     $Properties = @(
     'Subnet',
     'Switch'
     )
-    BackUp-TACData -Path $BackUpFolder -CSV -Properties $Properties -Verbose 4>> $FullLogFile
+    BackUp-TACData -Path $BackUpFolder -CSV -Properties $Properties -Verbose 4>> $FullLOG_FILE
 
 #----------------------------------------------- ReadTACData-TACData ----------------------------------------------
 # dir .\TACBackUp_0405\
@@ -216,4 +216,52 @@ Import-Module BackAtTAC
     }
 
     # Save Removed locations, maybe usefull if removing CivicAddres.
-    $RemovedLocs | Export-Csv -Path  "C:\Users\johnd\Downloads\RemovedLocs.csv" -NoTypeInformation 
+    $RemovedLocs | Export-Csv -Path  "C:\Users\johnd\Downloads\RemovedLocs.csv" -NoTypeInformation
+
+# EXAMPLE 10
+
+    # replace WAPs withing a building with new WAPs from file.
+
+    # Create Log file to write removed and updated WAP information to.
+    $LOG_FILE = "TACLog_$((Get-Date).ToString('ddMM')).txt"
+    New-Item -Path $LOG_FILE -ItemType File
+
+    # Load new WAPS from CSV in current directory.
+    $NEW_WAPS = Read-TACData -Path .\WaP_Wall_New.csv
+
+    # Get bulding CivicAddressID 
+    $BUILDING_ID = (Get-CsOnlineLisCivicAddress | Where-Object Description -Like "*Wall*").CivicAddressId
+    $BUILDING_DESCRIPTION = (Get-CsOnlineLisCivicAddress -CivicAddressId $BUILDING_ID).Description
+
+    # Get WAPs curently in TAC associated with the building.
+    $OLD_WAPS = Get-TACWaps -CIvicAddressId $BUILDING_ID
+
+    # Update log file with removed WAPS
+    "=== $((Get-Date).ToString('dd/MM/yyyy HH:mm:ss')) ===" | Out-File -FilePath $LOG_FILE -Append
+    "Removing WAPs:" | Out-File -FilePath $LOG_FILE -Append
+    $OLD_WAPS | Out-File -FilePath $LOG_FILE -Append
+
+    # Delete all WAPs associated with the building.
+    $REMOVED_WAPS = Remove-TACWAPs -WAP $OLD_WAPS -Confirm:$false
+
+    # Confirm WAPs were removed. If removed, Get-TACWAPs will return no entries.
+    if (-not {Get-TACWAPs -LocationId $REMOVED_WAPS.LocationId}) {
+        "All WAPs successfully removed from building: Description = $BUILDING_DESCRIPTION CivicAddressId = $BUILDING_ID)" | Out-File -FilePath $LOG_FILE -Append
+    } else {
+        "Error: Not all WAPs were removed from building: Description = $BUILDING_DESCRIPTION CivicAddressId = $BUILDING_ID)" | Out-File -FilePath $LOG_FILE -Append
+    }
+
+    # Publish new WAPs to TAC and confirm they were published by checking if the WAPs exist in TAC after publishing.
+    Publish-TacProperty -Values $NEW_WAPS -Property WAP
+
+    # Confirm new WAPS were published by checking if the WAPs exist in TAC after publishing and then log to log file.
+    $PUBLISHED_WAPS = Get-TACWaps -CIvicAddressId $BUILDING_ID
+    
+    # Find any BSSID in the new list that is NOT in the published list
+    $MISSING_WAPS = $NEW_WAPS.BSSID | Where-Object { $_ -notin $PUBLISHED_WAPS.BSSID }
+    
+    if (-not $MISSING_WAPS) {
+        "All WAPs successfully published to building: Description = $BUILDING_DESCRIPTION CivicAddressId = $BUILDING_ID)" | Out-File -FilePath $LOG_FILE -Append
+    } else {
+        "Error: Not all WAPs were published to building: Description = $BUILDING_DESCRIPTION CivicAddressId = $BUILDING_ID)" | Out-File -FilePath $LOG_FILE -Append
+    }
